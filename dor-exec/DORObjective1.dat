@@ -1,0 +1,32 @@
+%% necessary components for a data file: --- ? frew?
+%%
+%% the following initialization is required:
+%%
+%% \newarray
+%% \readarray{ArrayName}{%...
+%%
+%%}
+%%
+%% \Height is wrt dataheight- confusingly, number of columns.  
+%% \NumRows is required for \readrowshorthand, which is really a good idea.
+%%
+% Fri 06-03 01:13:06
+
+\newarray\DORCompare
+\readarray{DORCompare}{%
+Index	&Shorthand&					GWP&	AP&	POCP&	Smog&	Criteria&	OLDP&	EP&	EuT&%
+Heading	&Shorthand&					GWP*&	AP*&	POCP*&	Smog$\dagger$&	Respiratory$\dagger$&	OLDP*&	EP*&	EP$\dagger$&%
+Title&	tt&						Global Warming Potential&	Acidification Potential&	Phot. Ozone Creation Potential&	Smog Air $\dagger$&	Criteria Pollutants $\dagger$&	Ozone Layer Depletion Potential&	Eutrophication Potential&	Eutrophication Potential $\dagger$&%
+Units&	TT&						kg CO2eq&		kg SO2eq&		kg C2H4eq&		g/m NOx-eq&		kg PM2.5-eq&		kg R11-eq&		kg P-eq&		kg N-eq&%
+UCSB&	Material Production Total (PP+PET) - UCSB&	2.62244182666645&	0.03084259305116&	0.00513154144487&	0.00807498895293&	0.00700491977&		0.000000001599024&	0.001170054350129&	0.000708138574041&%
+MSU&	Material Production Total (PP+PET) - MSU&	3.36159017831044&	0.014352528500438&	0.000798012277112&	0.00350774627302&	0.005817012569424&	0.000000107863198&	0.002531423560362&	0.004735457468576&%
+Up&	SciNot Outsourced&  	  	     		2.62&		3.08e-02&		5.13e-03&		8.07e-03&		7.00e-03&		1.60e-09&		1.17e-03&		7.08e-04&%
+Mp&	PrettyPrint TM&					3.36&		1.44e-02&		7.98e-04&		3.51e-03&		5.82e-03&		1.08e-07&		2.53e-03&		4.74e-03&%
+}
+\def\NumRows{8}
+\def\DataHeight{10}
+\SetSource{DORCompare}(\DataHeight)
+\readrowshorthand{\NumRows}{1}
+\readcolumnshorthand{1}
+\def\mysubtitle{ Impacts from Material Production -- 1 kg PET, with 0.14-0.24 kg PP } % so really, the subtitle is the
+                                % functional unit

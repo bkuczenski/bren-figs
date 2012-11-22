@@ -1,0 +1,198 @@
+\begin{pspicture}(0,0)(16.5,8.25)%\showgrid
+\sffamily
+% read the data
+\readdata{\dExposure}{fig3-exposure.dat}
+
+\readdata{\dFluor}{fig3-fluorescence.dat}
+\readdata{\dModel}{fig3-model.dat}
+
+\readdata{\dSysOne}{xp1024_s1.dat}
+\readdata{\dSysTwo}{xp1024_s2.dat}
+
+
+\rput(11.55,3){
+  
+  % annotated model structure, with response graphs
+  \psset{xAxisLabel={},yAxisLabel={},showpoints=false,%
+    xunit=3.4cm,yunit=2cm}
+  
+  % place the nodes
+  \pnode(0,0){pSum}
+  \pnode(-1,1){pSys1}
+  \pnode(-1,-1){pSys2}
+  \pnode(-2.2,0){pGain}
+  \pnode(-3,0){pInput}
+  \pnode(0.84,0){pOutput}
+
+  % draw the nodes
+  \rput(pSum){\sumnode{nSum}}
+  % process 1: text
+  \rput(pSys1){\nodebox{nSys1}{style=process}{3.65cm}{1cm}%
+    {\small\begin{tabular}{@{}r@{\,}l@{}}
+      $\tau$\, & =\,17--45 s\\
+        gain & =\,1
+      \end{tabular}%\\
+%      Dominant system
+  }}
+%%   % process 1: impulse response
+%%   \rput(pSys1){
+%%     \rput[l](0.1,0){\begin{psgraph}[axesstyle=none,labels=none,ticks=none]%
+%% %          Dx=10,Dy=10,xticksize=-9 38,yticksize=-9 70,tickstyle=dashed]%
+%%         (0,0)(-9,-9)(65,35){1.4cm}{0.8cm}
+        
+%%         \psplot[linewidth=0.8pt,linecolor=darkblue,plotpoints=100]%
+%%                {0}{70}{2.718 x neg 34 div exp 30 mul}
+               
+%%         \psline[linewidth=0.8pt,linecolor=darkblue,dotsize=0 2.4]{-*}(-10,0)(0,0)(0,30)
+%%       \end{psgraph}
+%%     }}
+
+  % process 2: text
+  \rput(pSys2){\nodebox{nSys2}{style=process}{3.65cm}{1cm}%
+    {\small\begin{tabular}{@{}r@{\,}l@{}}
+      $\tau$\, & =\,1.2--5.8 s\\
+        gain & =\,$-($0.41-0.63$)$
+      \end{tabular}}}
+%%   % process 2: impulse response
+%%   \rput(pSys2){
+%%     \rput[l](0.1,0){\begin{psgraph}[axesstyle=none,labels=none,ticks=none]%
+%% %          Dx=10,Dy=10,xticksize=-9 38,yticksize=-9 70,tickstyle=dashed]%
+%%         (0,0)(-44,-35)(35,19){1.4cm}{0.8cm}
+        
+%%         \psplot[linewidth=0.8pt,linecolor=red,plotpoints=100]%
+%%                {0}{35}{2.718 x neg 3.5 div exp 16.5 mul neg}
+               
+%%         \psline[linewidth=0.8pt,linecolor=red,dotsize=0 2.4]{-*}(-10,0)(0,0)(0,-16.5)
+%%       \end{psgraph}
+%%     }}
+
+  % gain
+  \rput(pGain){\nodebox{nGain}{style=process}{0.8cm}{0.65cm}{$K_{sys}$}}
+  \rput[t]([angle=-90,nodesep=3pt]nGain){\parbox{2cm}{\centering
+      System Gain}}
+  \rput(pInput){\rnode{nInput}{\parbox{2cm}{\centering Ionomycin $u(t)$}}}
+  \rput(pOutput){\rnode{nOutput}{%
+      \parbox{2.5cm}{\centering  Fluorescence\\[0.2ex] $\frac{y(t)-y_0}{y_0}$}}}
+
+  % draw the arrows
+  \ncline[style=standard]{->}{nInput}{nGain}
+  \ncdiag[style=standard,offsetA=0.3,angleB=-180]{->}{nGain}{nSys1}
+  \ncdiag[style=standard,offsetA=-0.3,angleB=-180]{->}{nGain}{nSys2}
+  \ncdiag[style=standard,armB=0,angleB=120]{->}{nSys1}{nSum}
+  \ncdiag[style=standard,armB=0,angleB=-120]{->}{nSys2}{nSum}
+  \ncline[style=standard]{->}{nSum}{nOutput}
+
+
+  % and draw the data
+
+  % Exposure -- Input Signal
+  % set the scale for listplots
+  \pstScalePoints(1,1){175 sub}{}
+  \def\xlim{90}
+  \def\ylim{3.2}
+  
+  \rput[b]([angle=90,nodesep=13pt]nInput){\begin{psgraph}[axesstyle=none,labels=none,ticks=none]%
+      (0,0)(\xlim,\ylim){2cm}{1.7cm}
+      
+      % draw grid
+      \multido{\iGrid=5+20}{5}{ % X values
+        \psline[style=grid](\iGrid,-0.3)(\iGrid,2.2)}
+      \multido{\nGrid=0+1}{3}{ % Y values
+        \psline[style=grid](0,\nGrid)(\xlim,\nGrid)}
+      
+      % plot the data
+      \listplot[style=exposure]{\dExposure}
+  \end{psgraph}}
+  
+  % Fluorescence -- Comparison of Model to Data
+  % set the scale for listplots
+  \pstScalePoints(1,1){4 add}{}
+  \def\xlim{90}
+  \def\ylim{3.5}
+  
+  \rput[b]([angle=90,nodesep=-3pt,offset=0.5cm]nOutput){
+    \rput[b](0,0){\begin{psgraph}[axesstyle=none,labels=none,ticks=none]%
+        (0,0)(\xlim,\ylim){4.5cm}{3.5cm}
+        
+        % draw grid
+        \multido{\iGrid=5+20}{5}{ % X values
+          \psline[style=grid](\iGrid,0.7)(\iGrid,\ylim)}
+        \multido{\nGrid=1+1}{3}{ % Y values
+          \psline[style=grid](0,\nGrid)(\xlim,\nGrid)}
+        
+        % plot the data
+        \listplot[style=fluor]{\dFluor}
+        \listplot{\dModel}
+
+%%         % draw X axes
+%%         \psaxes[mathLabel=false,labelFontSize=\sffamily,%
+%%           axesstyle=axes,yAxis=false,%
+%%           xticksize=-4pt 0,yticksize=0,%
+%%           xsubticks=0,Dx=20,Ox=0](4,0)(0,0)(\xlim,0) 
+        
+%%         % draw Y axes
+%%         \psaxes[showorigin=false,mathLabel=false,labelFontSize=\sffamily,%
+%%           axesstyle=axes,xticksize=0,yticksize=-4pt 4pt,%
+%%           ysubticks=4,ysubticksize=0.5,Dy=1](0,0)(0,\ylim) 
+        
+%%         %draw frame
+%%         \psaxes[axesstyle=frame,xticksize=0,yticksize=0,%
+%%           labels=none](0,0)(\xlim,\ylim)
+        
+        
+%%         \rput[tr](88,3.3){\psframebox[linewidth=0.6pt]{\parbox{3.3cm}{\raggedright\scriptsize%
+%%               \sffamily
+%%               \setstretch{1.4}
+%%               \psline[style=fluor,linewidth=1.5pt](0.15cm,1ex)(0.55cm,1ex)
+%%               \hspace{0.9cm}{Observed Response}\\
+%%               \psline(0cm,1ex)(0.7cm,1ex)
+%%               \hspace{0.9cm}{Model Response}
+%%         }}}
+        
+    \end{psgraph}}
+  }
+
+  % System 1 response
+  % set the scale for listplots
+  \pstScalePoints(1,1){186 sub}{}
+  \def\xlim{90}
+  \def\ylim{3.5}
+  
+  \rput[b]([angle=90,nodesep=6pt,offset=0cm]nSys1){
+    \rput[b](0,0){\begin{psgraph}[axesstyle=none,labels=none,ticks=none]%
+        (0.6,0)(\xlim,\ylim){3cm}{2cm}
+        
+        % draw grid
+        \multido{\iGrid=5+20}{5}{ % X values
+          \psline[style=grid](\iGrid,-0.2)(\iGrid,\ylim)}
+        \multido{\nGrid=0+1}{4}{ % Y values
+          \psline[style=grid](0,\nGrid)(\xlim,\nGrid)}
+        
+        % plot the data
+        \listplot[linecolor=darkblue]{\dSysOne}
+        
+    \end{psgraph}}
+  }
+
+  % System 2 response
+  % set the scale for listplots
+  \def\ylim{1.2}
+  
+  \rput[b]([angle=90,nodesep=6pt,offset=0cm]nSys2){
+    \rput[b](0,0){\begin{psgraph}[axesstyle=none,labels=none,ticks=none]%
+        (0,-1.6)(\xlim,\ylim){3cm}{2cm}
+        
+        % draw grid
+        \multido{\iGrid=5+20}{5}{ % X values
+          \psline[style=grid](\iGrid,-1.6)(\iGrid,\ylim)}
+        \multido{\nGrid=-1+1}{3}{ % Y values
+          \psline[style=grid](0,\nGrid)(\xlim,\nGrid)}
+        
+        % plot the data
+        \listplot[linecolor=red]{\dSysTwo}
+        
+    \end{psgraph}}
+  }
+
+}
+\end{pspicture}

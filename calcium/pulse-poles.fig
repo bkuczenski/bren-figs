@@ -1,0 +1,80 @@
+\begin{pspicture}(-4,-1)(4,5.7)%\showgrid
+  \sffamily
+
+  % log-log plot of poles (time constants) vs Kdc
+  \psset{xAxisLabel={},yAxisLabel={},showpoints=false}
+
+  \readdata{\dLow}{pulse-lowpole.dat}
+  \readdata{\dHi}{pulse-hipole.dat}
+
+
+  % set the scale for listplots
+  \pstScalePoints(1,1){log}{log}
+  \def\xmin{-0.3}
+  \def\ymin{-0.3}
+  \def\xlim{2.3}
+  \def\ylim{2.3}
+
+  \rput(-3,0){ % plot
+    \pnode(0,-0.24cm){pXtick}
+    \pnode(-0.24cm,0){pYtick}
+
+    \pnode(3.5,-0.71cm){pXlabel}
+    \pnode(-0.71cm,2.8){pYlabel}
+
+    \rput[lb](0,0){\begin{psgraph}[axesstyle=none,labels=none,ticks=none]%
+        (\xmin,\ymin)(\xmin,\ymin)(\xlim,\ylim){7cm}{5.6cm}
+
+        %        \psdots(1,1)(2,1)(2,2)(1,2)
+
+        \listplot[linestyle=none,showpoints=true,dotstyle=Bo,dotscale=1.4,%
+          linecolor=blue]{\dLow}
+
+        \listplot[linestyle=none,showpoints=true,dotstyle=BoldMul,dotscale=1.4,%
+          linecolor=red]{\dHi}
+
+        % draw near X axes - must start on integer
+        \psaxes[subticks=10,axesstyle=axes,yAxis=false,%
+          logLines=all,labels=none,%
+          ticksize=0 3pt,tickstyle=inner](0,\ymin)(\xlim,\ymin)
+
+        % draw far X axes - must start on integer
+        \psaxes[subticks=10,axesstyle=axes,yAxis=false,%
+          logLines=all,labels=none,%
+          ticksize=-3pt 0,tickstyle=inner](0,\ylim)(\xlim,\ylim)
+
+        % draw X labels
+        \rput[t](0,0|pXtick){\textsf 1}
+        \rput[t](1,0|pXtick){\textsf 10}
+        \rput[t](2,0|pXtick){\textsf 100}
+
+        % draw near Y axes
+        \psaxes[subticks=10,axesstyle=axes,xAxis=false,%
+          ylogBase=10,logLines=all,labels=none,%
+          ticksize=0 3pt,tickstyle=inner](\xmin,0)(\xmin,\ylim)
+
+        % draw far Y axes
+        \psaxes[subticks=10,axesstyle=axes,xAxis=false,%
+          ylogBase=10,logLines=all,labels=none,%
+          ticksize=-3pt 0,tickstyle=inner](\xlim,0)(\xlim,\ylim)
+
+        % draw Y labels
+        \rput[r](pYtick|0,0){\textsf 1}
+        \rput[r](pYtick|0,1){\textsf 10}
+        \rput[r](pYtick|0,2){\textsf 100}
+
+       % draw frame
+       \psaxes[axesstyle=frame,ticksize=0,labels=none](\xmin,\ymin)(\xlim,\ylim)
+
+       \rput[l](1,1.7){\blue $\tau_1=$ 31 $\pm$ 14}
+       \rput[l](1,0.3){\red $\tau_2=$ 3.5 $\pm$ 2.3}
+
+      \end{psgraph}}
+
+
+    \rput[t](pXlabel){System Gain (Fluorescence / $\mu$M Ionomycin)}
+    \rput[b]{90}(pYlabel){Time constant (s)}
+
+  }
+\end{pspicture}
+

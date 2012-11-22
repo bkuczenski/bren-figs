@@ -1,0 +1,230 @@
+\begin{pspicture}(-4,0)(4,15)%\showgrid
+\rput(-3.05,0.6){%for figuretops
+  \sffamily
+
+  \psset{xAxisLabel={},yAxisLabel={},showpoints=false}
+
+  % zeroth plot: long step response to ionomycin, 100nM
+  \rput[bl](0,10.2){
+    % read the data
+    % XP_dish{6}{1}.XP{2} (xp1128)
+    \readdata{\dCellB}{fig11cell2.dat}
+    \readdata{\dCellC}{fig11cell3.dat}
+    \readdata{\dCellD}{fig11cell4.dat}
+    \readdata{\dCellE}{fig11cell5.dat}
+    
+    \def\xlim{238}
+    \def\ylim{5.8}
+    \def\Center{3.5}
+
+    % xlabel
+%    \rput[t](\Center,-0.8){Time (s)}
+    
+    % ylabel
+%    \rput[b]{90}(-0.7,3.5){Mean Fluorescent Intensity $f/f_0$}
+
+    \rput(0.5,3.8){\figlabel A}
+
+    \begin{psgraph}[axesstyle=none,labels=none,ticks=none]%
+      (0,0)(\xlim,\ylim){7cm}{4.16cm}
+
+      \dataplot{\dCellB}
+      \dataplot{\dCellC}
+      \dataplot{\dCellD}
+      \dataplot{\dCellE}
+
+      % draw X near axis
+      \psaxes[axesstyle=none,mathLabel=false,labelFontSize=\sffamily,yAxis=false,
+        xticksize=0 3pt,xsubticks=0,Dx=60](10,0)(\xlim,0)
+
+      % draw X far axis
+      \psaxes[axesstyle=none,labels=none,yAxis=false,
+        xticksize=-3pt 0,xsubticks=0,Dx=60](10,\ylim)(\xlim,\ylim)
+
+      % draw Y near axis
+      \psaxes[mathLabel=false,labelFontSize=\sffamily,showorigin=true,%
+        xAxis=false,axesstyle=none,yticksize=0 3pt,%
+        ysubticks=0,ysubticksize=0.5,Dy=1,Oy=1](0,1)(0,\ylim) 
+
+      % draw Y far axis
+      \psaxes[axesstyle=none,labels=none,xAxis=false,
+        yticksize=-3pt 0,ysubticks=0,Dy=1](\xlim,1)(\xlim,\ylim)
+
+%%       % draw X axis ticks
+%%       \psaxes[axesstyle=none,yAxis=false,labels=none,%
+%%         tickstyle=inner,yticksize=0,%
+%%         xticksize=0 4pt,xsubticks=0,Dx=20](10,0)(10,0)(\xlim,\ylim)
+
+%%       % draw Y axis labels
+
+%%       % draw X axis ticks
+%%       \psaxes[axesstyle=none,xAxis=false,tickstyle=inner,%
+%%         yticksize=0 4pt,ysubticks=0,Dy=1,Oy=1](0,1)(10,0)(\xlim,\ylim)
+
+      %draw frame
+      \psaxes[axesstyle=frame,ticks=none,labels=none](0,0)(\xlim,\ylim)
+      
+      \psline[linewidth=3pt,linecolor=darkgray](10,0.3)(238,0.3)
+      \rput[bl](20,0.45){\small\tt 100 nM Iono}
+
+
+    \end{psgraph}
+
+    
+
+
+  }
+
+
+  % first plot: long step response to ionomycin, 1uM
+  \rput[bl](0,5.44){
+    % read the data
+    % XP_dish{6}{1}.XP{2} (xp1128)
+    \readdata{\dCellA}{fig1_cell1.dat}
+    \readdata{\dCellB}{fig1_cell2.dat}
+    \readdata{\dCellC}{fig1_cell3.dat}
+    \readdata{\dCellD}{fig1_cell4.dat}
+    \readdata{\dCellE}{fig1_reg1.dat}
+    \readdata{\dCellF}{fig1_reg2.dat}
+    
+    \def\xlim{238}
+    \def\ylim{5.8}
+    \def\Center{3.5}
+
+    % xlabel
+%    \rput[t](\Center,-0.8){Time (s)}
+    
+    % ylabel
+    \rput[b]{90}(-0.6,2.08){Mean Fluorescent Intensity $f/f_0$}
+
+    \rput(0.5,3.8){\figlabel B}
+
+    \begin{psgraph}[axesstyle=none,labels=none,ticks=none]%
+      (0,0)(\xlim,\ylim){7cm}{4.16cm}
+
+      \dataplot{\dCellA}
+      \dataplot{\dCellB}
+      \dataplot{\dCellC}
+      \dataplot{\dCellD}
+      \dataplot{\dCellE}
+      \dataplot{\dCellF}
+
+      % draw X near axis
+      \psaxes[axesstyle=none,mathLabel=false,labelFontSize=\sffamily,yAxis=false,
+        xticksize=0 3pt,xsubticks=0,Dx=60](10,0)(\xlim,0)
+
+      % draw X far axis
+      \psaxes[axesstyle=none,labels=none,yAxis=false,
+        xticksize=-3pt 0,xsubticks=0,Dx=60](10,\ylim)(\xlim,\ylim)
+
+      % draw Y near axis
+      \psaxes[mathLabel=false,labelFontSize=\sffamily,showorigin=true,%
+        xAxis=false,axesstyle=none,yticksize=0 3pt,%
+        ysubticks=0,ysubticksize=0.5,Dy=1,Oy=1](0,1)(0,\ylim) 
+
+      % draw Y far axis
+      \psaxes[axesstyle=none,labels=none,xAxis=false,
+        yticksize=-3pt 0,ysubticks=0,Dy=1](\xlim,1)(\xlim,\ylim)
+
+%%       % draw X axis ticks
+%%       \psaxes[axesstyle=none,yAxis=false,labels=none,%
+%%         tickstyle=inner,yticksize=0,%
+%%         xticksize=0 4pt,xsubticks=0,Dx=20](10,0)(10,0)(\xlim,\ylim)
+
+%%       % draw Y axis labels
+
+%%       % draw X axis ticks
+%%       \psaxes[axesstyle=none,xAxis=false,tickstyle=inner,%
+%%         yticksize=0 4pt,ysubticks=0,Dy=1,Oy=1](0,1)(10,0)(\xlim,\ylim)
+
+      %draw frame
+      \psaxes[axesstyle=frame,ticks=none,labels=none](0,0)(\xlim,\ylim)
+      
+      \psline[linewidth=3pt,linecolor=darkgray](10,0.3)(238,0.3)
+      \rput[bl](20,0.45){\small\tt 1 $\mu$M Iono}
+
+
+    \end{psgraph}
+
+    
+
+
+  }
+
+  % second plot: long step response to ionomycin, 10uM
+  \rput[bl](0,0.67){
+    % read the data
+    % XP_dish{6}{1}.XP{2} (xp1128)
+    \readdata{\dCellA}{fig1b_cell1.dat}
+    \readdata{\dCellB}{fig1b_cell2.dat}
+    \readdata{\dCellC}{fig1b_cell3.dat}
+    \readdata{\dCellD}{fig1b_cell4.dat}
+    \readdata{\dCellE}{fig1b_reg1.dat}
+
+
+    \def\xlim{238}
+    \def\ylim{11.2}
+    \def\Center{3.5}
+
+    % xlabel
+    \rput[t](\Center,-0.65){Time (s)}
+    
+    % ylabel
+%    \rput[b]{90}(-0.7,3.5){Mean Fluorescent Intensity $f/f_0$}
+
+    \rput(0.5,3.8){\figlabel C}
+
+    \begin{psgraph}[axesstyle=none,labels=none,ticks=none]%
+      (0,0)(\xlim,\ylim){7cm}{4.16cm}
+
+      \dataplot{\dCellA}
+      \dataplot{\dCellB}
+      \dataplot{\dCellC}
+      \dataplot{\dCellD}
+      \dataplot{\dCellE}
+
+      % draw X near axis
+      \psaxes[axesstyle=none,mathLabel=false,labelFontSize=\sffamily,yAxis=false,
+        xticksize=0 3pt,xsubticks=0,Dx=60](10,0)(\xlim,0)
+
+      % draw X far axis
+      \psaxes[axesstyle=none,labels=none,yAxis=false,
+        xticksize=-3pt 0,xsubticks=0,Dx=60](10,\ylim)(\xlim,\ylim)
+
+      % draw Y near axis
+      \psaxes[mathLabel=false,labelFontSize=\sffamily,showorigin=true,%
+        xAxis=false,axesstyle=none,yticksize=0 3pt,%
+        ysubticks=0,ysubticksize=0.5,Dy=2,Oy=1](0,1)(0,\ylim) 
+
+      % draw Y far axis
+      \psaxes[axesstyle=none,labels=none,xAxis=false,
+        yticksize=-3pt 0,ysubticks=0,Dy=2](\xlim,1)(\xlim,\ylim)
+
+%%       % draw X axis ticks
+%%       \psaxes[axesstyle=none,yAxis=false,labels=none,%
+%%         tickstyle=inner,yticksize=0,%
+%%         xticksize=0 4pt,xsubticks=0,Dx=20](10,0)(10,0)(\xlim,\ylim)
+
+%%       % draw Y axis labels
+
+%%       % draw X axis ticks
+%%       \psaxes[axesstyle=none,xAxis=false,tickstyle=inner,%
+%%         yticksize=0 4pt,ysubticks=0,Dy=1,Oy=1](0,1)(10,0)(\xlim,\ylim)
+
+      %draw frame
+      \psaxes[axesstyle=frame,ticks=none,labels=none](0,0)(\xlim,\ylim)
+      
+      \psline[linewidth=3pt,linecolor=darkgray](10,0.6)(238,0.6)
+      \rput[bl](20,0.8){\small\tt 10 $\mu$M Iono}
+
+
+    \end{psgraph}
+
+    
+
+
+  }
+
+  
+} %for figuretops
+\end{pspicture}

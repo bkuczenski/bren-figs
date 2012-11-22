@@ -1,0 +1,81 @@
+\begin{pspicture}(-8,-5)(8,3.2)%\showgrid
+\rput(-6,-3.8){%for figuretops
+  \sffamily
+
+  % first plot: long step response to ionomycin
+  \psset{xAxisLabel={},yAxisLabel={},showpoints=false}
+
+  % read the data
+  \readdata{\dCellA}{fig2-cell1.dat}
+  \readdata{\dCellB}{fig2-cell2.dat}
+
+  \def\xlim{319}
+  \def\ylim{2.8}
+  \def\Center{6}
+
+  \rput[bl](0,0){
+    \begin{psgraph}[axesstyle=none,labels=none,ticks=none]%
+      (0,0)(\xlim,\ylim){12cm}{7cm}
+
+      \dataplot[style=cella]{\dCellA}
+      \dataplot[style=cellb]{\dCellB}
+
+      % draw X axes
+      \psaxes[mathLabel=false,labelFontSize=\sffamily,%
+        axesstyle=axes,yAxis=false,xticksize=-4pt 0,yticksize=0,%
+        xsubticks=0,Dx=40,Ox=0](0,0)(0,0)(\xlim,0) 
+
+      % draw Y axes
+      \psaxes[mathLabel=false,labelFontSize=\sffamily,showorigin=false,%
+        axesstyle=axes,xAxis=false,xticksize=0,yticksize=-4pt 4pt,%
+        ysubticks=4,ysubticksize=0.5,Dy=1](0,0)(0,0)(0,\ylim) 
+
+      %draw frame
+      \psaxes[axesstyle=frame,xticksize=0 4pt,yticksize=0 4pt,%
+        Dx=40,Ox=0,tickstyle=inner,ysubticks=4,%
+        labels=none](0,0)(\xlim,\ylim)
+
+      % exposure legend-- cell 1
+      \rput(100,0.65){
+        \rput[r](0,0){\small\tt 1 $\mu$M Iono - Cell 1}
+        \psline[linewidth=3pt,linecolor=darkgray](40.5,0)(44.5,0)
+        \psline[linewidth=3pt,linecolor=darkgray](100.5,0)(104.5,0)
+        \psline[linewidth=3pt,linecolor=darkgray](160.5,0)(165.5,0)
+        }
+
+      \rput(100,0.49){
+        \rput[r](0,0){\small\tt Cell 2}
+        \psline[linewidth=3pt,linecolor=darkgray](100.5,0)(104.5,0)
+        \psline[linewidth=3pt,linecolor=darkgray](160.5,0)(164.5,0)
+        }
+
+      % vertical indicators?
+      \psline[style=vlim](140.5,0)(140.5,\ylim)
+      \psline[style=vlim](144.5,0)(144.5,\ylim)
+      \psline[style=vlim](200.5,0)(200.5,\ylim)
+      \psline[style=vlim](204.5,0)(204.5,\ylim)
+      \psline[style=vlim](260.5,0)(260.5,\ylim)
+      \psline[style=vlim](265.5,0)(265.5,\ylim)
+
+      % legend
+      \rput[tl](10,2.7){\psframebox[linewidth=1pt]{\parbox{1.8cm}{\raggedright\scriptsize%
+            \sffamily
+            \setstretch{1.4}
+            \psline[style=cella](0cm,1ex)(0.7cm,1ex)
+            \hspace{0.9cm}{Cell 1}\\
+            \psline[style=cellb](0cm,1ex)(0.7cm,1ex)
+            \hspace{0.9cm}{Cell 2}
+            }}}
+
+    \end{psgraph}
+
+  }
+  % xlabel
+  \rput[t](6,-0.8){Time (s)}
+
+  % ylabel
+  \rput[b]{90}(-0.7,3.5){Mean Fluorescent Intensity $f/f_0$}
+
+  
+} %for figuretops
+\end{pspicture}

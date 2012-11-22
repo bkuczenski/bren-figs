@@ -1,0 +1,225 @@
+\documentclass[letterpaper]{article}
+%======================================================================
+% LOCAL DOCUMENT CONFIG
+
+%% LaTeX Packages ------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+
+\usepackage{setspace}
+\usepackage{calc}
+
+\usepackage{amsmath,amssymb,mathrsfs}
+
+%% page style ----------------
+\usepackage[left=1.0in,right=1.0in,top=1in,bottom=1.25in]{geometry}
+\usepackage{fancyhdr}
+% modified from lshort.sty
+\pagestyle{fancy}
+\renewcommand{\sectionmark}[1]{}
+\renewcommand{\rightmark}{Kuczenski, Leduc \& Messner --- 2010}
+\rhead[\fancyplain{}{\bfseries\thepage}]
+    {\fancyplain{}{\bfseries\rightmark}}
+\lhead[\fancyplain{}{\bfseries\leftmark}]
+    {\fancyplain{}{\bfseries\thepage}}
+\cfoot[]{}
+\addtolength{\headheight}{15pt}
+% ----------------------------
+
+
+\usepackage{pstricks-add}
+
+\newcommand{\sumnode}[1]{\cnode[fillstyle=solid,fillcolor=white]{0.2cm}{#1}
+  \rput(0,0){$+$}}
+\newcommand{\nodebox}[5]{%
+  \rput(0,0){\rnode{#1}{\psframebox[#2]{\rule{0pt}{#4}\rule{#3}{0pt}}}}
+  \rput(0,0){\psframebox[fillstyle=none,linestyle=none]{\parbox{#3 -
+        0.2cm}{\centering #5}}}
+}
+
+\newcommand{\Ca}{$\left[\textrm{Ca}^{2+}\right]_i$}
+\newcommand{\matlab}{\textsc{Matlab}}
+\newcommand{\Matlab}{\matlab}
+\newcommand{\TM}{$^{\textsc{tm}}$}
+\newcommand{\email}[1]{\texttt{\href{mailto:#1}{#1}}}
+\newcommand{\doi}[1]{doi:~\href{http://dx.doi.org/#1}{\small\texttt{#1}}}
+
+% hyphenation
+\hyphenation{mi-cro-flu-idic mi-cro-flu-idics nano-liter homeo-stasis
+  iono-phore iono-phores Massa-chusetts para-dig-matic ana-lytic}
+
+%%
+%% MAIN DOCUMENT SETTINGS
+%%
+\def\figlabel{\large\textsf}
+
+%% FONTS
+\usepackage[T1]{fontenc}
+\usepackage{fourier}
+%\usepackage{mathptmx} % for base font - times
+\usepackage[scaled]{helvet} % for sans serif
+%\usepackage{fourier}
+%\usepackage{mathptmx} % for base font - times
+%\usepackage[scaled]{helvet} % for sans serif
+%\usepackage[scaled]{uarial} % per RCR requirements: for sans serif - arial
+
+
+% instead of psstyle.tex:
+\newpsstyle{dashed}{linestyle=dashed,dash=7pt 4pt,linewidth=0.6pt,linecap=1}
+\newpsstyle{standard}{arrowsize=3pt 2,%
+  arrowinset=0.15,arrowlength=1.8,linearc=0.1} % formerly vague
+%\newpsstyle{vague}{arrowsize=3pt 2,arrowinset=0.15,arrowlength=1.8,linearc=0.1}
+\newpsstyle{grid}{linestyle=dashed,dash=4pt 2pt,linewidth=0.25pt,
+  linecolor=gray,showpoints=false}
+\newpsstyle{process}{dimen=outer,linestyle=solid,linecolor=darkgray,%
+  shadow=false,fillstyle=solid,linewidth=0.85pt}
+
+% for plots
+\newrgbcolor{darkblue}{0 0 0.55 }
+\newrgbcolor{darkgreen}{0 0.55 0}
+\newrgbcolor{steelblue}{0.27 0.51 0.71}
+
+\newpsstyle{vline}{linewidth=0.3pt,linecolor=gray}
+\newpsstyle{hline}{linewidth=0.35pt,linecolor=gray,linestyle=dashed,%
+  dash=5pt 1pt 1pt 1pt}
+\newpsstyle{dim}{linewidth=0.85pt,linecolor=black,tbarsize=6pt 5,offset=12pt}
+\newpsstyle{errorbar}{linewidth=0.65pt,linecolor=darkgray,tbarsize=4pt 4,offset=0pt}
+
+% for calcium
+\newrgbcolor{fluofourAM}{0.05 0.55 0.1}
+%\newrgbcolor{fluofourAM}{0.05 0.15 0.95}
+
+\newpsstyle{decay}{linewidth=2pt,strokeopacity=0.75,linecolor=steelblue}
+%\newpsstyle{exposure}{linewidth=1.2pt,linecolor=gray}
+\newpsstyle{fluor}{linestyle=none,showpoints=true,dotstyle=*,dotscale=0.85,linecolor=fluofourAM}
+\newpsstyle{filt}{linewidth=0.8pt,linecolor=darkgray,showpoints=false}
+\newpsstyle{vlim}{linewidth=0.3pt,linecolor=gray}
+\newpsstyle{exposure}{linewidth=1.2pt,linecolor=blue}
+\newpsstyle{cella}{linecolor=darkblue}
+\newpsstyle{cellb}{linecolor=darkgreen,linestyle=dashed,dash=5pt 2pt}
+
+
+
+
+
+
+
+
+\begin{document}
+
+\begin{figure}
+\centering
+\input{step-mini.fig}
+\caption{Step Response of fibroblasts to ionomycin at the specified
+  concentration.  Each panel shows a single experiment with multiple cells
+  in the field of view.  Results are typical of 29 experiments including
+  148 cells. }
+\end{figure}
+
+%% \begin{figure}
+%% \centering
+%% \input{step-response.fig}
+%% \caption{Step Response.}
+%% \end{figure}
+
+\begin{figure}
+\centering
+\input{step-analysis.fig}
+\input{step-statistics.fig}
+\caption{Step Response Modeling.  All cells were monitored until they
+  reached a peak intensity, after which they began their recovery towards
+  the baseline intensity.  After the rate of recovery reached a maximum,
+  the subsequent recovery was approximated as an exponential decay.  The
+  cells were characterized in terms of the time to rise to peak intensity
+  and the characteristic time constant of the exponential decay. (A) A
+  diagram showing salient figures in the step response analysis.  (B) Rise
+  time as a function of ionomycin concentration.  Each datapoint shows mean
+  and standard deviation.  The number of cells in each sample is shown in
+  parentheses.  For 100 nM, $t_{rise}=99\pm61$~s; for 1 $\mu$M,
+  $t_{rise}=26\pm8$~s; for 10 $\mu$M, $t_{rise}=14.5\pm4.0$~s.  (C)
+  Exponential decay time constant as a function of ionomycin concentration.
+  Results shown as in (B).  For 100 nM, $\tau=64\pm16$~s; for 1 $\mu$M,
+  $\tau=28\pm9$~s; for 10 $\mu$M, $\tau=21\pm4.3$~s.}
+\end{figure}
+
+\begin{figure}
+\centering
+\input{cell-schematic.fig}
+\caption{Identifying linear characteristics of cellular response to
+  ionophore.  Estimates of cellular exposure to ionomycin were compared
+  with measurements of cell fluorescence to ascertain whether the cellular
+  response can be described by a linear model.  The input was the mean
+  concentration of ionomycin over the cell's apical surface versus time.
+  The output was the change from baseline levels of the cell's mean
+  fluorescent intensity.}
+\end{figure}
+
+\begin{figure}
+\centering
+\input{impulse-response.fig}
+\caption{Measuring Impulse Response.  (some data was previously published
+  in PLoS, figure 4b.) }
+\end{figure}
+
+\begin{figure}
+\centering
+\input{model-response.fig}
+\caption{Pulse Response Identification.  An iterative parameter estimation
+  algorithm was used to identify potential models.  A second-order linear
+  model was found to fit the data consistently in 23 of 31 trials.  The
+  remaining 8 resulted in ill-conditioned models. }
+\end{figure}
+
+\begin{figure}
+\centering
+\input{model-firstorder.fig}
+\caption{Pulse Response Modeling.  The pulse responses were found to be
+  well-described as two first-order systems working in parallel and acting
+  in opposite directions ($n=23$).  The slower system, which dominated the
+  response, had a time constant of 31$\pm$14 sec.  The faster system had a
+  time constant of roughly 1--6 s and was roughly half as effective at
+  influencing fluorescent intensity as the dominant system (relative gain
+  $-0.52\pm0.11$).  $K_{sys}$ represents system gain, which is correlated
+  to the magnitude of the increase in fluorescence and was
+  wide-ranging (from 1.17 to 70.2).}\label{fig:model}
+\end{figure}
+
+\begin{figure}
+\centering
+\input{pulse-poles.fig}
+\caption{Pulse response time constants as a function of cell
+  responsiveness.  Horizontal axis is the system gain computed for each
+  trial (see Figure~\ref{fig:model} above).  Vertical axis shows the time
+  constants of the two first-order systems.  These are the numerical
+  inverses of the eigenvalues of the characteristic equation of the linear
+  model. }
+\end{figure}
+
+
+%% \begin{figure}[t]
+%% \centering
+%% \input{firstorder.fig}
+%% %\caption{First Model -- Lead network.}
+%% %\end{figure}
+%% \caption{Modeling calcium response as two first-order systems.}
+%% \end{figure}
+
+
+%% \begin{figure}
+%% \centering
+%% \input{zp.fig}
+%% \caption{Eigenvalues.}
+%% \end{figure}
+
+%% \begin{figure}
+%% \centering
+%% \input{lead-network.fig}
+%% \caption{First Model: Lag network.}
+%% \end{figure}
+
+\end{document}
+
+
+% cell1 - 0.1765
+% cell4 - 0.4118

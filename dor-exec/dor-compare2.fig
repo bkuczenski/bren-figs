@@ -1,0 +1,33 @@
+\begin{pspicture}(-1,-1.5)(14.5,7.8)%\showgrid
+  \rput(-0.6,0){
+
+    \pnode(0,-0.6){pBottomRight}
+    \sffamily
+    
+    \setlength{\barchartheight}{5.3cm}
+    \setlength{\barmargin}{3cm}
+    \setbarwidth[17pt]
+    
+
+    \rput(0,0){
+      \begin{barfig}[h]{\barchartheight}{0.22}{3}
+        
+        
+        \setbarbreakpoint[3]
+        \def\precision{2}
+        \nextbar[-0.7]
+
+        \multido{\iC=3+1}{8}{%
+          \drawcompareucsb{\iC}}
+        
+        \drawfootnotes
+
+      \end{barfig}
+      
+      \rput[bl](0,1.3\barchartheight){\parbox{13cm}{\raggedright{\large
+            \mysubtitle}\\
+          \small Comparison of MSU and UCSB studies}}
+    }
+  }
+    
+\end{pspicture}

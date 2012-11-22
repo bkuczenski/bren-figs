@@ -1,0 +1,601 @@
+%% This file supersedes bargraphics.sty
+%%
+%% A LaTeX style file to facilitate data visualization from arrayjobx.sty
+%% arrays
+%% 
+%% To play nicely with this package you need:
+%%
+%% a data file which is tex-formatted containing:
+%% the name of an array
+%% the contents of that array
+%% a \dataheight definition
+%% some Number of Rows definition
+%% a \SetSource{array}(height) invocation
+%% you may find the various \..shorthand commands valuable
+\ProvidesPackage{arraydata}[2010/08/12 managing arrays dumped from excel (BK)]
+
+\RequirePackage{fp}
+\RequirePackage{arrayjobx}
+\expandarrayelementtrue
+
+\RequirePackage{trimspaces}
+\def\trimspace#1{\trim@spaces@in{#1}}
+
+\newarray\ad@RowIndex
+\newarray\ad@ColIndex
+\newarray\ad@OutputData
+
+\newcount\ad@NumRows
+\newcount\ad@NumCols
+\newcount\ad@NumData
+\newcount\ad@DataHeight
+\ad@DataHeight=0
+
+
+%%=========================================================================
+%% Useful tools to create an ordered list of data rows/columns
+\newcount\ad@stage
+
+\newarray\ad@stages
+\newarray\ad@styles
+
+\def\ad@set@stages#1,#2\relax{%
+  \advance\ad@stage by1
+  \ad@stages(\the\ad@stage)={#1}
+  \ifx\relax#2\relax
+  \xdef\NumStages{\the\ad@stage}
+  \else
+  \expandafter\ad@set@stages#2\relax
+  \fi
+}
+
+\def\adsetstages(#1){% set stages to be the parenthetical list of rows
+  \ad@stage=0
+  \expandafter\ad@set@stages#1,\relax
+}
+
+\def\ad@set@styles#1,#2\relax{%
+  \advance\ad@stage by1
+  \ad@styles(\the\ad@stage)={#1}
+  \ifx\relax#2\relax
+  \else
+  \expandafter\ad@set@styles#2\relax
+  \fi
+}
+
+\def\adsetstyles[#1]{% set stages to be the parenthetical list of rows
+  \ad@stage=0
+  \expandafter\ad@set@styles#1,\relax
+}
+
+\def\getStyle(#1)#2{
+  \checkad@styles(#1)\ArraytoDef#2
+}
+\def\getStage(#1)#2{
+  \checkad@stages(#1)\ArraytoDef#2
+}
+\def\nextstage{
+  \advance\ad@stage by1
+  \getStage(\the\ad@stage)\ad@current@stage
+  \getStyle(\the\ad@stage)\ad@current@style
+}
+\def\thestage{\the\ad@stage}
+\def\setstage(#1){%
+  \ad@stage=#1
+  \getStage(\the\ad@stage)\ad@current@stage
+  \getStyle(\the\ad@stage)\ad@current@style
+}
+\def\resetstage{\setstage(0)}
+
+
+%%=========================================================================
+%% Compute minimum, maximum and sum
+
+\def\ad@min@max#1#2#3#4{% #1- min #2- max #3- Data #4- max index
+  \def\my@min{0}
+  \def\my@max{0}
+  \multido{\iIndex=1+1}{#4}{%
+    \expandafter\csname check#3\endcsname(\iIndex)\ArraytoFP\thisval%
+    \FPifgt\thisval\my@max
+      \global\let\my@max\thisval%
+      \global\let\max@index\iIndex%
+    \fi
+    \FPiflt\thisval\my@min
+      \global\let\my@max\thisval%
+      \global\let\max@index\iIndex%
+    \fi
+  }%
+  \xdef#2{\my@max}
+  \xdef#1{\my@min}
+}
+
+\def\admax#1#2#3{% \admax\maxof\arrayname{\numentries}
+  \def\my@max{0}
+  \multido{\iIndex=1+1}{#3}{%
+    \expandafter\csname check#2\endcsname(\iIndex)\ArraytoFP\thisval%
+    \FPifgt\thisval\my@max
+      \global\let\my@max\thisval%
+      \global\let\max@index\iIndex%
+    \fi
+  }%
+  \xdef#1{\my@max}
+}
+
+\def\admin#1#2#3{% \admin\minof\arrayname{\numentries}
+  \def\my@min{0}
+  \multido{\iIndex=1+1}{#3}{%
+    \expandafter\csname check#2\endcsname(\iIndex)\ArraytoFP\thisval%
+    \FPiflt\thisval\my@min
+      \global\let\my@min\thisval%
+      \global\let\min@index\iIndex%
+    \fi
+  }%
+  \xdef#1{\my@min}
+}
+
+\def\adsum#1#2#3{% \adsum\sumof\arrayname{\numentries}
+  \def\my@sum{0}
+  \multido{\iIndex=1+1}{#3}{%
+    \expandafter\csname check#2\endcsname(\iIndex)\ArrayScitoFP\thisval
+    \FPadd\thesum\my@sum\thisval
+    \global\let\my@sum=\thesum
+  }
+  \xdef#1{\my@sum}
+}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% These functions index into the data 
+\def\ad@grabcols#1,#2\relax{% grab argument, store into ad@ColIndex
+  \advance\ad@NumCols by 1
+  \ad@ColIndex(\ad@NumCols)={#1}
+  \ifx\relax#2\relax% end of the line
+  \else
+  \expandafter\ad@grabcols#2\relax
+  \fi
+}
+\def\ad@grabrows#1,#2\relax{% grab argument, store into ad@RowIndex
+  \advance\ad@NumRows by 1
+  \ad@RowIndex(\ad@NumRows)={#1}
+  \ifx\relax#2\relax% end of the line
+  \else
+  \expandafter\ad@grabrows#2\relax
+  \fi
+}
+%% \def\ad@grabgaps#1,#2\relax{% grab argument, store into ad@RowIndex
+%%   \advance\ad@NumRows by 1
+%%   \def\ad@temp@arg{#1}\trimspaces\ad@temp@arg
+%%   \ad@RowIndex(\ad@NumRows)={\ad@temp@arg}
+%%   \ifx\relax#2\relax% end of the line
+%%   \else
+%%   \expandafter\ad@grabrows#2\relax
+%%   \fi
+%% }
+
+
+\def\selectcols[#1]{%
+  % user supplies comma-delimited list of indices of columns to use in the
+  % form: \selectcols[4,6,13,7] or \selectcols[\shorthand,\othersh,\mysh]
+  \ad@NumCols=0
+  \expandafter\ad@grabcols#1,\relax
+}
+\def\selectrows[#1]{%
+  % user supplies comma-delimited list of indices of columns to use in the
+  % form: \selectrows[4,6,13,7] or \selectrows[\shorthand,\othersh,\mysh]
+  \ad@NumRows=0
+  \expandafter\ad@grabrows#1,\relax
+}
+\def\SetSource#1(#2){%
+  \ad@DataHeight=#2
+  \ifcsname check#1\endcsname
+  \def\ad@SourceArray{#1}
+  \else
+  \PackageError{arraydata}{#1 does not appear to be an array.}{?}
+  \fi
+}
+\def\GetSource#1{%
+  \global\let#1\ad@SourceArray
+}
+\def\Query(#1){%
+  \csname check\ad@SourceArray\endcsname(#1)
+}
+
+\newcommand{\showdatacols}{
+  Num Columns: \the\ad@NumCols; Column Index: \multido{\iCols=1+1}{\ad@NumCols}{%
+    \checkad@ColIndex(\iCols)
+    \cachedata;
+  }\par
+}
+\newcommand{\showdatarows}{
+  Num Rows: \the\ad@NumRows;   Row Index: \multido{\iRows=1+1}{\ad@NumRows}{%
+    \checkad@RowIndex(\iRows)
+    \cachedata;
+  }\par
+}
+
+\newcommand{\ad@index}[3][\ad@NumData]{
+  % [#1] - length of index array (\ad@NumData)
+  %  #2  - data array
+  %  #3  - index array
+  %
+  % this function takes in a 1-d data array and a 1-d index array and
+  % populates a third array with data indexed from the data array.
+  % in other words, ad@OutputData(i)=#2(#3(i))
+  \multido{\iCount=1+1}{#1}{%
+    \expandafter\csname check#3\endcsname(\iCount)\trimspace\cachedata
+    \expandafter\csname check#2\endcsname(\cachedata)
+    \ad@OutputData(\iCount)=\cachedata
+  }
+}
+
+
+\def\ad@checkinit{%
+  \ifnum\ad@DataHeight=0
+    \PackageError{arraydata}{Data Height not initialized.}{use
+      \noexpand\SetSource\{ArrayName\}(foo)}
+  \fi
+}
+
+
+\newcommand{\extractdata}[1]{
+  % #1 - target
+  % uses existing Row index and Column index; requires \ad@SourceArray and
+  % the corresponding ad@DataHeight to be set.
+  \ad@checkinit
+  \multido{\iRow=1+1}{\the\ad@NumRows}{%
+    \dataheight=\ad@DataHeight
+    \checkad@RowIndex(\iRow)\trimspace\cachedata
+    \edef\srcrow{\cachedata}
+    \def\check@ad@src(##1){\csname check\ad@SourceArray\endcsname(\srcrow,##1)}
+    \ad@index[\the\ad@NumCols]{@ad@src}{ad@ColIndex}
+    \multido{\iCol=1+1}{\the\ad@NumCols}{%
+      \dataheight=\ad@NumCols
+      \checkad@OutputData(\iCol)
+      \csname #1\endcsname(\iRow,\iCol)=\cachedata
+    }
+  }
+  \dataheight=\ad@NumCols % for referencing the newly created data
+}
+
+%% \newcommand{\foocommand}[1]{
+%%   \dataheight=\ad@DataHeight
+%%   \def\checkFOO(##1){\expandafter\csname check#1\endcsname(5,##1)}
+%% %  \show\checkFOO
+%%   \ad@index[\the\ad@NumCols]{FOO}{ad@ColIndex}{MyOutput}
+%% }
+
+
+
+
+
+%% \newcommand{\cbar}[6][]{%
+%%   % [#1] - optarg
+%%   %  #2  - array name - data
+%%   %  #3  - array name - list of rows
+%%   %  #4  - single number - column
+%%   %  #5  - optional argument to referenced function
+%%   %  #6  - function to call
+%%   % pulls data columnwise from select rows and sends it off to another
+%%   % function. 
+%%   % uses ad@ColCount
+%%   % goes at (0,0)
+%%   % using internal array ad@RefData
+%% %  \rput(0,0){% added to debug positioning errors
+%%     \multido{\iSeg=1+1}{\the\ad@DataCount}{%
+%%       \expandafter\csname check#3\endcsname(\iSeg)\trimspace\cachedata
+%%       \expandafter\csname check#2\endcsname(\cachedata,#4)\ArrayScitoFP\mydata
+%%       \ad@RefData(\iSeg)=\cachedata
+%%     }
+%% %  }
+%%   \ifx\relax#1\relax%
+%%   \csname #6\endcsname{ad@RefData}{#5}%
+%%   \else%
+%%   \csname #6\endcsname[#1]{ad@RefData}{#5}%
+%%   \fi%
+%% }
+
+
+\newcommand{\assigncolumnshorthand}[3][d]{
+  % assign data into shorthand names 
+  % #1 - prefix [d]
+  %    - number of columns is \dataheight
+  % #2 - row containing macro name, with \d
+  % #3 - row to read into macro
+  \ad@checkinit
+  \let\ad@tmp@height\dataheight
+  \dataheight=\ad@DataHeight
+  \multido{\iCol=1+1}{\ad@DataHeight}{%
+    \expandafter\csname check\ad@SourceArray\endcsname(#3,\iCol)\ArraytoDef\ad@sourcedata
+    \expandafter\csname check\ad@SourceArray\endcsname(#2,\iCol)\trimspace\cachedata
+    \expandafter\xdef\csname #1\cachedata\endcsname{\ad@sourcedata}
+  }
+  \dataheight=\ad@tmp@height
+}
+
+\newcommand{\assignrowshorthand}[4][d]{
+  % assign data into shorthand names 
+  % #1 - prefix [d]
+  % #2 - number of rows
+  % #3 - column containing macro name, with \d
+  % #4 - column to read into macro
+  \ad@checkinit
+  \let\ad@tmp@height\dataheight
+  \dataheight=\ad@DataHeight
+  \multido{\iRow=1+1}{#2}{%
+    \expandafter\csname check\ad@SourceArray\endcsname(\iRow,#4)\ArraytoFP\ad@sourcedata
+    \expandafter\csname check\ad@SourceArray\endcsname(\iRow,#3)\trimspace\cachedata
+    \expandafter\xdef\csname #1\cachedata\endcsname{\ad@sourcedata}
+  }
+  \dataheight=\ad@tmp@height
+}
+\newcommand{\assignrowshorthandSci}[4][d]{
+  % assign data into shorthand names, escaping scientific notation
+  % #1 - prefix [d]
+  % #2 - number of rows
+  % #3 - column containing macro name, with \d
+  % #4 - data assigned to macro
+  \ad@checkinit
+  \let\ad@tmp@height\dataheight
+  \dataheight=\ad@DataHeight
+  \multido{\iRow=1+1}{#2}{%
+    \expandafter\csname check\ad@SourceArray\endcsname(\iRow,#4)\ArrayScitoFP\ad@sourcedata
+    \expandafter\csname check\ad@SourceArray\endcsname(\iRow,#3)\trimspace\cachedata
+    \expandafter\xdef\csname #1\cachedata\endcsname{\ad@sourcedata}
+  }
+  \dataheight=\ad@tmp@height
+}
+
+\newcommand{\readrowshorthand}[2]{%
+  % assigns shorthand names for the data rows
+  % #1 - number of rows
+  % #2 - which column contains the short names \r
+  \ad@checkinit
+  \let\ad@tmp@height\dataheight
+  \dataheight=\ad@DataHeight
+  \multido{\iRow=1+1}{#1}{%
+    \expandafter\csname check\ad@SourceArray\endcsname(\iRow,#2)\trimspace\cachedata
+    \expandafter\xdef\csname r\cachedata\endcsname{\iRow}
+  }
+  \dataheight=\ad@tmp@height
+}
+
+\newcommand{\readcolumnshorthand}[2][\ad@DataHeight]{%
+  % assigns shorthand names for the data columns
+  % [#1] - number of columns to read [\dataheight]
+  %  #2 - which row contains the short names
+  \ad@checkinit
+  \let\ad@tmp@height\dataheight
+  \dataheight=\ad@DataHeight
+  \multido{\iCol=1+1}{#1}{%
+    \expandafter\csname check\ad@SourceArray\endcsname(#2,\iCol)\trimspace\cachedata
+    \expandafter\xdef\csname c\cachedata\endcsname{\iCol}
+  }
+  \dataheight=\ad@tmp@height
+}
+\def\ArraytoFP#1{\trimspace\cachedata\FPclip#1\cachedata}
+\def\ArrayScitoFP#1{\trimspace\cachedata\scitoFPIn\cachedata\FPclip#1\cachedata}
+\def\ArraytoDef#1{\trimspace\cachedata\let#1\cachedata}
+% if empty or blank, execute #1; else #2
+\newcommand{\IfEmptyElement}[2]{%
+  \trimspace\cachedata
+  \ifx\cachedata\@empty
+    #1
+  \else
+    #2
+  \fi
+}
+%%   \ifemptydata 
+%%   #1%
+%%   \else
+%%   \ifx\cachedata\space 
+%%   #1%
+%%   \else 
+%%   #2%
+%% \fi
+%% \fi
+%% }
+
+
+
+% compute the maximum values in each row of a matrix
+\newcommand{\computehorizontalmax}[5][\ad@NumCols]{%
+  % [#1] - optional max column to compute [\ad@NumCols]
+  %  #2 - name of max array
+  %  #3 - name of data array
+  %  #4 - number of rows to do
+  %  #5 - name of index array (which index contains max) - can be empty
+  % assumes \dataheight is properly set.
+  \multido{\iRow=1+1}{#4}{%
+    \def\mymax{0}
+    \multido{\iCol=1+1}{#1}{%
+      \expandafter\csname check#3\endcsname(\iRow,\iCol)\ArraytoFP\thisval
+      \FPifgt{\thisval}{\mymax} 
+        \global\let\mymax=\thisval%
+        \global\let\whichcol=\iCol
+      \fi
+    }
+    \arrayx{#2}(\iRow)={\mymax}
+    \ifcsname #5\endcsname
+    \arrayx{#5}(\iRow)={\whichcol}
+    \fi
+  }
+}
+
+% compute the maximum values in each column of a matrix
+\newcommand{\computeverticalmax}[4][\dataheight]{%
+  % [#1] - number of rows to sum [\dataheight]
+  %  #2 - name of max array
+  %  #3 - name of data array
+  %  #4 - number of rows to do.
+  % assumes \dataheight is properly set, and computes across dataheight
+  \multido{\iCol=1+1}{#1}{%
+    \def\mymax{0}
+    \multido{\iRow=1+1}{#4}{%
+      \expandafter\csname check#3\endcsname(\iRow,\iCol)\ArraytoFP\thisval
+      \FPifgt{\thisval}{\mymax} 
+        \global\let\mymax=\thisval%
+      \fi
+    }
+    \arrayx{#2}(\iCol)={\mymax}
+  }
+}
+
+%% % compute the sum across columns for each row
+%% \newcommand{\computehorizontalsum}[4][\dataheight]{%
+%%   % [#1] - num of columns to sum [\dataheight]
+%%   %  #2  - name of sum array
+%%   %  #3  - name of data array
+%%   %  #4  - number of rows to do
+%%   % assumes \dataheight is properly set, and computes across dataheight
+%%   \newif\ifexpanding \expandingfalse % need to control expandarrayelement
+%%   \ifexpandarrayelement
+%%   \expandingtrue
+%%   \else
+%%   \expandarrayelementtrue
+%%   \fi
+%%   \multido{\iRow=1+1}{#4}{%
+%%     \def\mysum{0}
+%%     \multido{\iCol=1+1}{#1}{%
+%%       \expandafter\csname check#3\endcsname(\iRow,\iCol)\ArrayStoFP\thisval
+%%       \FPadd\thesum\mysum\thisval
+%%       \global\let\mysum=\thesum
+%%     }
+%%     \arrayx{#2}(\iRow)={\mysum}
+%%   }
+%%   \ifexpanding  % reset to prior value if was false
+%%   \else
+%%   \expandarrayelementfalse
+%%   \fi
+%% }
+
+%% % compute the sum along rows for each column
+%% \newcommand{\computeverticalsum}[4][\dataheight]{%
+%%   % [#1] - num of columns to sum [\dataheight]
+%%   %  #2  - name of sum array
+%%   %  #3  - name of data array
+%%   %  #4  - number of rows to do
+%%   % assumes \dataheight is properly set, and computes across dataheight
+%%   \newif\ifexpanding \expandingfalse % need to control expandarrayelement
+%%   \ifexpandarrayelement
+%%   \expandingtrue
+%%   \else
+%%   \expandarrayelementtrue
+%%   \fi
+%%   \multido{\iCol=1+1}{#1}{%
+%%     \def\mysum{0}
+%%     \multido{\iRow=1+1}{#4}{%
+%%       \expandafter\csname check#3\endcsname(\iRow,\iCol)\ArraytoFP\thisval
+%%       \FPadd\thesum\mysum\thisval
+%%       \global\let\mysum=\thesum
+%%     }
+%%     \arrayx{#2}(\Col)={\mysum}
+%%   }
+%%   \ifexpanding  % reset to prior value if was false
+%%   \else
+%%   \expandarrayelementfalse
+%%   \fi
+%% }
+
+%% % scale data on import
+%% \newcommand{\scaledata}[4][\mcScale]{%
+%%   % scales the data row-wise according to a scaling factor
+%%   % [#1] - Scaling column in metadata array [\mcScale]
+%%   %  #2  - Metadata array
+%%   %  #3  - Data array
+%%   %  #4  - number of rows to do
+%%   % if your data are columnwise, use \normalindextrue
+%%   % uses \MetaHeight and \DataHeight
+%%   \newif\ifexpanding \expandingfalse % need to control expandarrayelement
+%%   \ifexpandarrayelement
+%%   \expandingtrue
+%%   \else
+%%   \expandarrayelementtrue
+%%   \fi
+%%   \multido{\iRow=1+1}{#4}{%
+%%     \dataheight=\MetaHeight
+%%     \csname check#2\endcsname(\iRow,#1)\ArrayStoFP\scalingfactor
+%%     \ifx\scalingfactor{1} % only if different from one
+%%       \dataheight=\DataHeight
+%%       \multido{\iCol=1+1}{\dataheight}{%
+%%         \csname check#3\endcsname(\iRow,\iCol)\ArrayStoFP\mydata
+%%         \FPmul\mydata\mydata\scalingfactor
+%%         \csname #3\endcsname(\iRow,\iCol)=\mydata
+%%       }
+%%     \fi
+%%   }
+%%   \ifexpanding  % reset to prior value if was false
+%%   \else
+%%   \expandarrayelementfalse
+%%   \fi
+%% }
+%%#########################################################################
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% %% Vector Commands
+
+%% % these commands perform the specified operation on one, two, or three data
+%% % array references.  the command should produce a macro which is then
+%% % stored back into the first array referenced.  These are assumed to
+%% % operate on output data, not source data, so dataheight should be properly
+%% % set already by \extractdata.  commands are \vectorNx where N is I, II, or
+%% % III and x is c or r (for column or row).
+%% %
+%% % \vectorIc[refone]{MyData}{4}(10){\FPmul\refone\refone{3.6}} 
+%% %
+%% % will pull the first 10 entries of column 4 from MyData, FPmul each by
+%% % 3.6, and then store the results back into column 4 of MyData.  This is
+%% % completely equivalent to
+%% %
+%% % \vectorIc[result]{MyData}{4}(10){\FPmul\result\refone{3.6}} 
+%% %
+%% % and
+%% %
+%% % \vectorIc{MyData}{4}(10){\FPmul\refone\refone{3.6}} 
+
+%% \newtoks\vector@stuff
+
+%% \newcommand{\vectorIc}[5][refone]{%
+%%   % [#1] - name of macro which stores result [refone]
+%%   %  #2  - arrayname
+%%   %  #3  - column to operate on
+%%   %  #4  - number of rows to operate
+%%   %  #5  - command to operate (must define a macro called #1)
+%%   \vector@stuff{#5}
+%%   \multido{\iCount=1+1}{#4}{%
+%%     \csname check#2\endcsname(\iCount,#3)\ArraytoFP\refone
+%%     \showthe\vector@stuff
+%%     \the\vector@stuff\refone
+%%     \typeout{#1}
+%%     \csname #2\endcsname(\iCount,#3)=\expandafter\csname #1\endcsname
+%%   }
+%% }
+%% this seems to work for layout- just not for fp.sty.  and can't include
+%% \par, sor some reason. 
+\newcommand{\vectorIIc}[5][\ad@NumRows]{%
+  \def\my@repeat@command##1##2##3(##4)##5{%
+    \expandafter\csname check##1\endcsname(##4,##2)
+    \let\refone\cachedata
+    \expandafter\csname check##1\endcsname(##4,##3)
+    \let\reftwo\cachedata
+    \trimspace\refone
+    \trimspace\reftwo
+    \csname ##1\endcsname(##4,##2)={##5}
+  }
+  \multido{\i@int=1+1}{#1}{%
+    \my@repeat@command{#2}{#3}{#4}(\i@int){#5}
+  }
+}
+\newcommand{\vectorIc}[4][\ad@NumRows]{%
+  \def\my@repeat@command##1##2(##3)##4{%
+    \expandafter\csname check##1\endcsname(##3,##2)
+    \let\refone\cachedata
+    \trimspace\refone
+    \edef\output{##4}
+    \csname ##1\endcsname(##3,##2)=\output
+  }
+  \multido{\i@int=1+1}{#1}{%
+    \my@repeat@command{#2}{#3}(\i@int){#4}
+  }
+}

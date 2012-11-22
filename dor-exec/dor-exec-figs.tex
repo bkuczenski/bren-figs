@@ -1,0 +1,241 @@
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% DOR executive summary comparison of MSU and UCSB reports.
+% time trial: normalize against one not max. Wed 06-08 02:16:10
+% ok. that's it. call it done at: Wed 06-08 02:28:15 [includes a big poop]
+\documentclass[10pt]{article}
+%% For usage instructions, consult figs.txt
+
+\usepackage[left=1in,right=1in,top=1in,bottom=1in]{geometry}
+
+%% DRAFT MODE
+\usepackage{fancyhdr}
+%\thispagestyle{fancy}
+\thispagestyle{empty}
+%\pagestyle{empty}
+\pagestyle{fancy}
+\lhead{\sffamily\jobname}
+\rhead{\now}
+\cfoot{\sffamily\thepage}
+\def\headrulewidth{0pt}
+
+%\usepackage{works}
+%% LaTeX Packages ------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+
+\usepackage{amsmath,amssymb,mathrsfs}
+
+\usepackage[nomessages]{fp} % BEWARE! this package reverses the sense of the builtin
+                % FPadd (builtin is \1+\2=\3; replacement is \1=\2+\3)
+                % also, this shit is slow.  but utterly and completely vital.
+\usepackage{floats} % custom! I don't even remember what this does.. wow, nice
+\def\FPprecision{3}
+
+\let\FPaddold\FPadd
+\renewcommand\FPadd[3]{\FPaddold{#1}{#2}{#3} \FPclip{#1}{#1}}
+\let\FPsubold\FPsub
+\renewcommand\FPsub[3]{\FPsubold{#1}{#2}{#3} \FPclip{#1}{#1}}
+
+% pdf-foo
+\RequirePackage[colorlinks,breaklinks,hyperindex,plainpages=false,%
+%linkcolor=hyperblue,urlcolor=hyperblue,anchorcolor=hyperblue,%
+citecolor=black,%
+pdfstartview=FitH,pdfpagemode=UseOutlines,%
+bookmarksopen=false]{hyperref}
+\def\pdfBorderAttrs{/Border [0 0 0] } % No border arround Links
+\setlength{\pdfpagewidth}{\paperwidth}
+\setlength{\pdfpageheight}{\paperheight}
+
+
+\usepackage{pstricks-add}
+\usepackage{pst-blur}
+\usepackage{pst-grad}
+
+\definecolor{brenblue}{rgb}{.18,0.41,0.55}
+\newrgbcolor{lightblue}{0.75 0.75 1}
+\newrgbcolor{MRgreen}{0.13 0.675 0.12}
+\newgray{gray2}{0.2}
+
+\newpsstyle{fancybox}{shadow=true,shadowsize=2pt,shadowcolor=gray,dimen=inner,%
+  fillstyle=gradient,gradbegin=lightblue,gradend=white,gradangle=35,gradmidpoint=1}
+\newpsstyle{blur}{shadow=true,blur=true,shadowsize=1.2pt,blurradius=1pt}
+
+%% %% =====================================================================
+%% %% Document Config
+
+%% ---------- Fonts
+
+%\usepackage[scaled]{uarial}
+%\usepackage[scaled]{berasans}
+\usepackage{helvet}
+%\renewcommand{\rmdefault}{ptm}
+%\renewcommand{\sfdefault}{phv}
+\def\large{\fontsize{12pt}{1pt}\selectfont}
+
+
+%% ---------- TeX structures - ifs, lengths, counts [toks?]
+
+% -------------------------------------------------------------------------
+% graph config
+\let\maketheticks\relax
+%\let\showgrid\relax
+\let\figdemo\input
+
+%% %% --------------------------------------------------------------------
+%% 
+\usepackage{arraydata}
+\usepackage{barfigs}
+
+\newlength{\barchartheight}
+\setlength{\barmargin}{0pt}
+\setlength{\barlabelsep}{1.5pt}
+\setlength{\barnodesep}{2.5pt}
+
+% ---------------------------------------------------------------------------
+% Usage Notes
+%\message{Required conditionals:  ifdrawfeedstock, ifdrawlabels}
+%\message{Required lengths: boxwidth, boxheight}
+% ---------------------------------------------------------------------------
+
+%% ---------- colors
+% moved to psstyle
+
+%% ---------- styles
+
+%% ---- doc general
+\newpsstyle{default}{linecolor=gray2,linewidth=0.6pt,fillstyle=solid,%
+  dimen=outer,framesep=0pt,style=blur,shadowsize=1.2pt,blurradius=1pt}
+\newpsstyle{white}{linestyle=none,fillstyle=solid,fillcolor=white}
+
+%% ---- data-specific
+
+%% == life cycle stages
+\newpsstyle{msu}{style=default,style=fancybox,gradangle=210,%
+  gradbegin=MRgreen,gradend=white!45!MRgreen,opacity=0.6}
+\newpsstyle{ucsb}{style=default,style=fancybox,gradangle=240,%
+  gradbegin=brenblue,gradend=white!45!brenblue,opacity=0.6}
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% chart drawing commands
+%% make these as general as possible!  what do you want? a normalized
+%% comparison of two processes with different units.
+
+\def\drawcompare#1{%
+  % by-column comparison -- norm to max
+  \assignrowshorthand{\NumRows}{1}{#1}   % read data to d<rowname>
+  \Query(\rTitle,#1)\ArraytoDef\mytitle   % pull metadata
+
+  \FPifgt\dUCSB\dMSU
+    \let\dMax\dUCSB
+    \def\UCSBof{0}
+    \def\MSUof{-3pt}
+    \else
+    \let\dMax\dMSU
+    \def\UCSBof{3pt}
+    \def\MSUof{0}
+  \fi
+
+  \setbarscale[\dMax]
+  
+  \nextbar 
+  \labelat(-0.06){\rput{*0}(0,0){MSU}}
+  \segment*[msu]{\dMSU}
+  \labelat{\dMSU}{\rput{*0}(0,0){\rput(\MSUof,5pt){\dMp}}}
+
+  \nextbar[0.32]
+  \labelat(1.21){\rput{*0}(0,0){\rput(0,5pt){\small \dHeading}}}
+  \labelat(1.11){\rput{*0}(0,0){\rput(0,5pt){\dUnits}}}
+  \nextbar[0.32]
+
+  \labelat(-0.06){\rput{*0}(0,0){UCSB}}
+  \segment*[ucsb]{\dUCSB}
+  \rput{*0}(pDataPtr){\rput(\UCSBof,5pt){\dUp}}
+
+}
+\def\drawcompareucsb#1{%
+  % by-column comparison -- norm to ucsb
+  \assignrowshorthand{\NumRows}{1}{#1}   % read data to d<rowname>
+  \Query(\rTitle,#1)\ArraytoDef\mytitle   % pull metadata
+
+  \def\UCSBof{3pt}
+  \def\MSUof{-3pt}
+  \FPdiv\dMSU\dMSU\dUCSB
+  \def\dUCSB{1}
+  
+  \nextbar 
+  \labelat(-0.06){\rput{*0}(0,0){MSU}}
+  \segment*[msu]{\dMSU}
+  \rput{*0}(pDataPtr){\rput(\MSUof,5pt){\dMp}}
+
+  \nextbar[0.32]
+  \labelat(1.21){\rput{*0}(0,0){\rput(0,5pt){\small \dHeading}}}
+  \labelat(1.11){\rput{*0}(0,0){\rput(0,5pt){\dUnits}}}
+  \nextbar[0.32]
+
+  \labelat(-0.06){\rput{*0}(0,0){UCSB}}
+  \segment*[ucsb]{\dUCSB}
+  \rput{*0}(pDataPtr){\rput(\UCSBof,5pt){\dUp}}
+
+}
+\def\drawcomparemsu#1{%
+  % by-column comparison -- norm to msu
+  \assignrowshorthand{\NumRows}{1}{#1}   % read data to d<rowname>
+  \Query(\rTitle,#1)\ArraytoDef\mytitle   % pull metadata
+
+  \def\UCSBof{3pt}
+  \def\MSUof{-3pt}
+  \FPdiv\dUCSB\dUCSB\dMSU
+
+  \nextbar 
+  \labelat(-0.06){\rput{*0}(0,0){MSU}}
+  \segment*[msu]{1}
+  \labelat{1}{\rput{*0}(0,0){\rput(\MSUof,5pt){\dMp}}}
+
+  \nextbar[0.32]
+  \labelat(1.21){\rput{*0}(0,0){\rput(0,5pt){\small \dHeading}}}
+  \labelat(1.11){\rput{*0}(0,0){\rput(0,5pt){\dUnits}}}
+  \nextbar[0.32]
+
+  \labelat(-0.06){\rput{*0}(0,0){UCSB}}
+  \segment*[ucsb]{\dUCSB}
+  \rput{*0}(pDataPtr){\rput(\UCSBof,5pt){\dUp}}
+
+}
+\def\drawfootnotes{%
+  % positioned at bottom-left corner of bar field.
+  \rput[tl](pTopLeft|[angle=-90,nodesep=5pt]pBottomRight){  
+    \parbox{10cm}{\scriptsize\raggedright\setlength{\parskip}{0pt}
+      *~CML 2001 indicator (November 2009 revision)\\
+      $\dagger$~TRACI 2002 indicator}
+  }
+}
+
+
+
+% pdf display
+\hypersetup{pdfstartview=FitH}
+
+% diagnostics
+\typeout{rmdefault: \rmdefault}
+\typeout{sfdefault: \sfdefault}
+%\listfiles
+
+
+% =========================================================================
+% #########################################################################
+
+\begin{document} %=========================================================
+
+\sffamily\scriptsize
+
+\input{DORObjective1.dat}
+\figdemo{dor-compare2.fig}
+
+\vfill\figdemo{dor-compare3.fig}
+
+%% \clearpage
+%% \figdemo{dor-compare.fig}
+
+\end{document}
+

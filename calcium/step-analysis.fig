@@ -1,0 +1,99 @@
+\begin{pspicture}(0,0)(16.5,9.2)%\showgrid
+\rput(1.45,1){
+  \sffamily
+
+  % draw data, filter trace, vlines, hlines, exponential fit
+  \psset{xAxisLabel={},yAxisLabel={},showpoints=false}
+
+  % read the data
+  \readdata{\dCell}{xp_dish_5_2_4_6_rok.dat}
+  \readdata{\dFilt}{xp_dish_5_2_4_6_rokf.dat}
+
+  \def\xlim{238}
+  \def\ylim{65}
+  \def\yzero{8.70}
+  \def\ymax{53.18}
+  \def\tzero{8}
+  \def\trise{32}
+  \def\tdecay{78}
+  \def\decay{36.09}
+  \def\recovery{9.44}
+  \def\timeconstant{27.27}
+  \def\expgain{26.64}
+
+  \rput*(0.95,7.5){\figlabel A}
+
+  \rput[bl](0,0){
+    \begin{psgraph}[axesstyle=frame,labels=none,ticks=none]%
+      (0,0)(\xlim,\ylim){13.8cm}{8cm}
+
+      % draw exponential
+      \psplot[style=decay,plotpoints=100,showpoints=false]%
+             {\tdecay}{\xlim}%
+             {\recovery\space \expgain\space 
+               2.7183 x \tdecay\space exch sub \timeconstant\space
+               div exp mul add}
+
+      % plot the data
+      \dataplot[style=fluor]{\dCell}
+%      \dataplot[style=filt]{\dFilt}
+
+      % draw vlines
+      \psline[style=hline,linestyle=solid](\tzero,0)(\tzero,\ylim)
+      \psline[style=hline](\trise,0)(\trise,\ylim)
+      \pcline[style=hline](\tdecay,0)(\tdecay,\ylim)
+      \bput(0.87){$t_d$}
+
+      % draw hlines
+      \pcline[style=hline](0,\recovery)(\xlim,\recovery)
+%      \bput[3pt](0.45){$y_{recovery}$}
+      \psline[style=hline](0,\yzero)(\xlim,\yzero)
+      \psline[style=hline](0,\ymax)(\xlim,\ymax)
+
+      \pnode(90,27){pCurve}
+      \pnode(110,35){pEqn}
+%      \rput[tl](90,\recovery){$y_{recovery}$}
+      \rput[bl](pEqn){$(y_{fit}-y_{recovery})=A\exp{\left(-\frac{(t-t_{d})}{\tau}\right)}$}
+      \psline[style=decay,style=dashed]{cc-cc}(pEqn)(pCurve)
+      
+      \pcline[style=dim]{|*-|*}(\tdecay,\recovery)(\tdecay,\decay)
+      \lput*(0.5){$A$}
+
+      \pcline[style=dim]{|*-|*}(\tzero,\ymax)(\trise,\ymax)
+      \lput*(0.5){$t_{rise}$}
+
+%      \pcline[style=dim,offset=24pt]{|*-|*}(\tzero,\ymax)(\tdecay,\ymax)
+%      \lput*(0.5){$t_d$}
+
+      % draw X near axis
+      \psaxes[axesstyle=none,mathLabel=false,labelFontSize=\sffamily,yAxis=false,
+        xticksize=0 3pt,xsubticks=0,Dx=30](\tzero,0)(\xlim,0)
+
+      % draw X far axis
+      \psaxes[axesstyle=none,labels=none,yAxis=false,
+        xticksize=-3pt 0,xsubticks=0,Dx=30](\tzero,\ylim)(\xlim,\ylim)
+
+%%       % draw Y near axis
+%%       \psaxes[mathLabel=false,labelFontSize=\sffamily,showorigin=true,%
+%%         xAxis=false,axesstyle=none,yticksize=-3pt 3pt,%
+%%         ysubticks=0,ysubticksize=0.5,Dy=10](0,0)(\xlim,8) 
+
+      \rput[r](0,0){$0\quad$}
+      \rput[rt](0,\yzero){$y_0\quad$}
+      \rput[rb](0,\recovery){$y_{recovery}\quad$}
+      \rput[r](0,\ymax){$y_{max}\quad$}
+
+      % draw Y far axis
+      \psaxes[axesstyle=none,labels=none,xAxis=false,
+        yticksize=-3pt 0,ysubticks=0,Dy=1](\xlim,\yzero)(\xlim,\yzero)
+
+      \rput[t](120,-6){Time (s)}
+
+      \rput[b]{90}(-15,32.5){Fluorescent Intensity}
+
+    \end{psgraph}
+    
+  }
+}
+\end{pspicture}
+

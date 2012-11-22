@@ -1,0 +1,123 @@
+\begin{pspicture}(0,0)(16.5,7.32)%\showgrid
+
+\rput(8.25,1.2){
+  \sffamily
+
+  % two side-by-side plots, 3 data points each
+  \psset{xAxisLabel={},yAxisLabel={},showpoints=false}
+
+  \pnode(0,-0.665){pXlabel}
+
+  \rput[bl](-6.8,0){
+    \rput[b]{90}(-0.95,3){Rise Time $t_{rise}$ (s)}
+
+    \rput(0.5,5.5){\figlabel B}
+
+    \def\xlim{4}
+    \def\ylim{178}
+    \rput[bl](0,0){
+    \begin{psgraph}[axesstyle=frame,labels=none,ticks=none]%
+      (0,0)(\xlim,\ylim){6cm}{6cm}
+
+      %% t_rise mean+std for:   1e-7 99+-61 (n=34); 
+      %%                        1e-6 24+-8 (n=79);
+      %%                        1e-5 14.5+-4 (n=20); (total n=133)
+
+
+      % points
+      \psdots[linecolor=black,dotstyle=Bsquare,dotscale=1.6]% data here:
+         (1,99)(2,24)(3,14.5)
+
+      % errorbars
+      \psline[style=errorbar]{|-|}(1,38)(1,160)
+      \psline[style=errorbar]{|-|}(2,16)(2,32)
+      \psline[style=errorbar]{|-|}(3,10.5)(3,18.5)
+
+      % n labels
+      \rput[bl](1,100){\sffamily\;\; (34)}
+      \rput[bl](2,28){\sffamily\;\; (79)}
+      \rput[bl](3,17){\sffamily\;\; (20)}
+
+
+
+      % x ticks
+      \psaxes[axesstyle=none,labels=none,yAxis=false,%
+        xticksize=0 3pt](1,0)(3,0)
+      \psaxes[axesstyle=none,labels=none,yAxis=false,%
+        xticksize=-3pt 0](1,\ylim)(3,\ylim)
+
+      \rput[t](1,0){100 nM\rule{0pt}{3ex}}
+      \rput[t](2,0){1 $\mu$M\rule{0pt}{3ex}}
+      \rput[t](3,0){10 $\mu$M\rule{0pt}{3ex}}
+
+      % y ticks
+      \psaxes[axesstyle=none,mathLabel=false,labelFontSize=\sffamily,xAxis=false,%
+        yticksize=0 3pt,Dy=20](0,0)(0,\ylim)
+
+      % y ticks
+      \psaxes[axesstyle=none,labels=none,xAxis=false,%
+        yticksize=-3pt 0,Dy=20](\xlim,0)(\xlim,\ylim)
+
+      \rput[t](2,0|pXlabel){Ionomycin Concentration}
+    \end{psgraph}}
+
+
+  }
+
+
+
+
+  \rput[bl](1,0){
+
+    \rput[b]{90}(-0.75,3){Decay time constant $\tau$ (s)}
+
+    \rput(0.5,5.5){\figlabel C}
+
+    \def\xlim{4}
+    \def\ylim{98}
+    \rput[bl](0,0){
+    \begin{psgraph}[axesstyle=frame,labels=none,ticks=none]%
+      (0,0)(\xlim,\ylim){6cm}{6cm}
+      
+      %% using ~#short tests
+      %% tau mean+std for:      1e-7 63+-17 (n=13)
+      %%                        1e-6 30+-10.3 (n=49)
+      %%                        1e-5 21+-4.3 (n=20); (total n=82)
+
+      % points
+      \psdots[linecolor=black,dotstyle=Bsquare,dotscale=1.6]% data here:
+         (1,63)(2,30)(3,21)
+
+      % errorbars
+      \psline[style=errorbar]{|-|}(1,46)(1,80)
+      \psline[style=errorbar]{|-|}(2,19.7)(2,40.3)
+      \psline[style=errorbar]{|-|}(3,16.7)(3,25.3)
+
+      %labels
+      \rput[bl](1,64){\sffamily\;\; (13)}
+      \rput[bl](2,28){\sffamily\;\; (49)}
+      \rput[bl](3,21){\sffamily\;\; (20)}
+
+      % x ticks
+      \psaxes[axesstyle=none,labels=none,yAxis=false,%
+        xticksize=0 3pt](1,0)(3,0)
+      \psaxes[axesstyle=none,labels=none,yAxis=false,%
+        xticksize=-3pt 0](1,\ylim)(3,\ylim)
+
+      \rput[t](1,0){100 nM\rule{0pt}{3ex}}
+      \rput[t](2,0){1 $\mu$M\rule{0pt}{3ex}}
+      \rput[t](3,0){10 $\mu$M\rule{0pt}{3ex}}
+
+      % y ticks
+      \psaxes[axesstyle=none,mathLabel=false,labelFontSize=\sffamily,xAxis=false,%
+        yticksize=0 3pt,ysubticks=1,Dy=20](0,0)(0,\ylim)
+
+      % y ticks
+      \psaxes[axesstyle=none,labels=none,xAxis=false,%
+        yticksize=-3pt 0,ysubticks=1,Dy=20](\xlim,0)(\xlim,\ylim)
+
+      \rput[t](2,0|pXlabel){Ionomycin Concentration}
+    \end{psgraph}}
+  }
+}
+\end{pspicture}

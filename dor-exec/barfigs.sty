@@ -1,0 +1,1047 @@
+\ProvidesPackage{barfigs}[2011/01/23 generalized bar plotting (BK)]
+%% Sun 04-17 23:25:11
+%% this file is now under modification to support horiz baseline
+
+%% Strategy for converting this file to use horiz or vert:
+%% -- make sure everything is node-based
+%% -- check rotation and axis scaling
+%%    NOTE: xunit and yunit are inherited under \rput{ang}==> can't use
+%%    outer \rput{ang} in non-orthometric axes
+%% -- many drawing/putting commands marked with #DIR
+%%
+%%=======
+%% hmm, there are a lot of them. 
+%%
+%% new plan: locate mid-level commands which call put commands and nest
+%% them inside an \rput{\bar@rot@angle}(p@bar@0)
+%%
+%% Wed 03-30 17:59:18 -0700
+%% new meta-plan: diagram the functionalization of this file
+
+%% bargraph environment
+%%
+%% \begin{bargraph}[v](4,14) ....
+
+%% pseduo-bar:
+%% \begin{pspicture}(0,0)(16,16)
+
+%%   \begin{bargraph}[v](4,14){14} % [#1](#2){#3}
+%%     % format input is in graph units: use (); 1==#3
+%%     % data input after setscale is in data units: use {}; scale==#3
+%%     \setscale{20}
+%%     \setunits{MJ}
+%%     \setprecision{2}
+    
+%%     \setskip(0.14) % in graph units-- aspect-preserving
+%%     \setbarwidth(0.65) % in skip units
+
+%%     % series pointer is at 0
+%%     % data pointer is at 0
+%%     \drawaxis[arrows=->,style=standard](-0.05)(1.2)
+%%     \drawticks*{10,20} % * adds label
+%%     \drawminorticks{5,15}
+
+%%     \toplabel{22}{\units} % vertical offset = 0.5 barwidth
+
+%%     % \newbar skips down by setskip [multiplied by optarg]
+%%     \newbar
+
+%%     \drawsegment{\dPEDnet}
+%%     \labelsegment
+    
+%% \end{pspicture}
+\RequirePackage{arrayjobx} % formerly arraydata
+
+\newpsstyle{bar@hint}{linewidth=0.4pt,linecolor=gray,arrows=-}
+\newpsstyle{bar@tint}{linestyle=none,dimen=outer,fillcolor=white,fillstyle=solid,opacity=0.15}
+\newpsstyle{bar@tint@over}{linestyle=none,dimen=outer,shadow=false,blur=false,opacity=0.45}
+\newpsstyle{bar@tick}{linewidth=0.8pt,linecolor=black}
+\newpsstyle{bar@minor@tick}{linewidth=0.6pt,linecolor=black}
+\newpsstyle{bar@dots}{dotsize=3pt,linecolor=cerulean}
+\newpsstyle{bar@datum}{linestyle=dashed,dash=8pt 3.5pt,linecolor=darkgray,linewidth=0.5pt}
+\newpsstyle{bar@dimen}{style=thin,linewidth=0.4pt}
+\newpsstyle{bar@nodelabel}{linestyle=solid,linecolor=gray2,arrows=-*,%
+  dotsize=0.6pt 1}
+\newpsstyle{bar@default}{linecolor=gray2,linewidth=0.6pt,fillstyle=solid,fillcolor=seagreen,%
+  dimen=outer,framesep=0pt,shadow=true,blur=true,shadowsize=1.2pt,blurradius=1pt}
+\newpsstyle{bar@current@style}{style=bar@default}
+
+%% alignment
+\newif\if@horiz@baseline@  \@horiz@baseline@false
+\newif\if@seg@neg@dir@ \@seg@neg@dir@false
+
+\newif\if@bar@break@ \@bar@break@false   % is a break point set?
+\newif\if@segment@broken@ \@segment@broken@false % set to true when a bar breaks;
+                                % clear in bar@cr
+\newif\if@suppress@bar@break@ \@suppress@bar@break@false
+
+
+%% lengths
+\newlength{\barwidth}    \setlength{\barwidth}{5pt}
+\newlength{\barmargin}   \setlength{\barmargin}{3.5cm}
+\newlength{\barframesep} \setlength{\barframesep}{0.4pt}
+\newlength{\barlabelsep} \setlength{\barlabelsep}{3pt}
+\newlength{\barnodesep}  \setlength{\barnodesep}{3pt}
+
+%% useful variables
+\gdef\datasum{0} %% sum of positively-drawn bars
+\gdef\segmentvalue{0}
+\gdef\precision{3}
+
+\gdef\data@value{0}
+
+%% must initialize! use \setbarscale [ or \begin..]
+\gdef\bar@scale{1}
+
+%% internal counters
+\newcount \bar@count
+\newcount \bar@datum
+\def\thebar{\the\bar@count}
+\def\barbreakdraw{0.9} % where to draw the breakpoint
+
+\newarray\Bar@Datum % for storing numerical amounts
+
+%% useful nodes: 
+%% pBarPtr-- points to base of bar 
+%% pDataPtr -- points to current data cursor
+%% pSegmentStart, pSegmentEnd, pSegmentCenter, pBarCenter
+
+\newcommand{\disp}[2][\precision]{%
+  \FPround\myfp{#2}{#1}%
+  \FPtrunc\myfp\myfp{#1}%
+  \footnotesize\myfp
+}
+\newcommand{\disps}[2][\precision]{%
+  \FPround\myfp{#2}{#1}%
+  \FPtrunc\myfp\myfp{#1}%
+  \scriptsize\myfp
+}
+\newcommand{\dispspercent}[2][\precision]{%
+  \FPmul\mypct{#2}{100}
+  \FPsub\myprec{#1}{2}
+  \FPround\myfp\mypct\myprec%
+  \FPtrunc\myfp\myfp\myprec%
+  \scriptsize\myfp\%
+}
+\newcommand{\dispsc}[2][\precision]{%
+  \FPround\myfp{#2}{#1}%
+  \FPtrunc\myfp\myfp{#1}%
+  \tiny\myfp
+}
+\newcommand{\displ}[2][\precision]{%
+  \FPround\myfp{#2}{#1}%
+  \FPtrunc\myfp\myfp{#1}%
+  \small\myfp
+}
+\newcommand{\dispL}[2][\precision]{%
+  \FPround\myfp{#2}{#1}%
+  \FPtrunc\myfp\myfp{#1}%
+  \normalsize\myfp
+}
+
+%%=========================================================================
+%% SEGMENT COMMANDS
+
+%% ----------
+%% backend functions:
+%% \draw@segment
+%% \adv@data@ptr -- move data pointer
+%% \adv@data@ptr@star -- .. and update running sum
+\def\draw@segment#1{% 
+  \edef\@raw@segment{#1}
+  \scitoFPIn\@raw@segment
+  \def\@bar@broke@test{1}
+  \if@bar@break@ % set with \setbarbreakpoint
+    \FPsub\@bar@broke@start\bar@break\data@value
+    \FPsub\@bar@broke@end\@bar@broke@start\@raw@segment
+    \FPmul\@bar@broke@test\@bar@broke@start\@bar@broke@end
+    % if we CROSS the break point, then @start >0 and @end < 0
+  \fi
+  \FPifneg\@bar@broke@test % if bar@break < prospective data val
+    \FPsub\@raw@segment\bar@break\data@value % then break
+    \@segment@broken@true
+    \else
+    \@segment@broken@false
+  \fi
+  \@rput@origin{%
+    \rput(pDataPtr){\pnode(0,0){pSegmentStart}}
+    \FPdiv\myloc\@raw@segment\bar@scale%
+    \rput(pSegmentStart){%
+      \psset{yunit=\barwidth}  %% #DIR -- yunit vs xunit!
+      \pnode(0,-0.5){p@unrot@nodea}
+      \pnode(\myloc,0.5){p@unrot@nodeb}
+%      \psframe[style=bar@current@style](0,-0.5)(\myloc,0.5) %% #DIR -- 
+      \pnode(\myloc,0){pSegmentEnd} %% #DIR -- 
+      \pcline[linestyle=none](pDataPtr)(pSegmentEnd)
+      \lput(0.5){\pnode(0,0){pSegmentCenter}}
+      \rput(pSegmentCenter){%
+        \pnode(0,-0.5){pSegmentBottom} %% #DIR -- 
+        \pnode(0,0.5){pSegmentTop} %% #DIR -- 
+      }
+    }
+    \rput{\text@rot@up@angle}(0,0){\psframe[style=bar@current@style](p@unrot@nodea)(p@unrot@nodeb)}
+    \pcline[linestyle=none](pBarPtr)(pSegmentEnd)
+    \lput(0.5){\pnode(0,0){pBarCenter}}%
+    \gdef\segmentvalue{#1}
+    \if@segment@broken@
+    \draw@bar@break
+    \fi
+  }
+  \@seg@neg@dir@false
+  \FPifneg\@raw@segment
+  \@seg@neg@dir@true
+  \fi
+  \FPifzero\@raw@segment
+  \@seg@neg@dir@true
+  \fi
+}
+%%
+\def\draw@bar@break{%
+  % \@rput@origin{% %% assumes already inside an rput@origin!
+  \if@suppress@bar@break@
+  \else
+  \rput(pBarPtr){
+    \FPdiv\myloc\bar@break\bar@scale
+    \FPmul\myloc\myloc\barbreakdraw
+    \rput(\myloc,0){%
+      \rput{67}(0,0){\pnode(-0.7\barwidth,0){pS}\pnode(0.7\barwidth,0){pF}}
+      \psline[linecolor=white,linewidth=3pt](pS)(pF)
+      \pcline[linewidth=0.75pt]([angle=0,nodesep=1.5pt]pS)([angle=0,nodesep=1.5pt]pF)
+      \pcline[linewidth=0.75pt]([angle=180,nodesep=1.5pt]pS)([angle=180,nodesep=1.5pt]pF)
+    }
+  }
+  \fi
+}
+%% move data pointer
+\def\adv@data@ptr{%
+  \rput(pSegmentEnd){\pnode(0,0){pDataPtr}}
+  \FPadd\data@value@\data@value\segmentvalue
+  \global\let\data@value\data@value@
+%  \def\bar@@test{0}
+}
+%% if used with \segment*, keep a running sum
+\def\adv@data@ptr@star{
+  \adv@data@ptr
+  \FPadd\data@sum\datasum\segmentvalue
+  \global\let\datasum\data@sum
+}
+\def\@set@bar@style#1{%
+  % if #1 is a psstyle, sets bar@current@style to #1
+  % else interprets it as a style spec
+  \ifcsname pscs@#1\endcsname
+  \newpsstyle{bar@current@style}{style=#1}
+  \else
+  \newpsstyle{bar@current@style}{style=bar@default,#1}
+  \fi
+}
+\def\@set@bar@style@none{%
+  \newpsstyle{bar@current@style}{style=none}
+}
+
+
+%% segment-drawing backend: either draw segment or draw-and-advance
+\newcommand{\@segment}[2][bar@default]{%
+%  \@check@style\@my@style{#1}
+  \@set@bar@style{#1}
+%  \show\pscs@bar@current@style
+  \draw@segment{#2}
+}
+\newcommand{\@adv@segment}[2][bar@default]{%
+  \@set@bar@style{#1}
+  \draw@segment{#2}
+  \adv@data@ptr@star
+}
+\newcommand{\@segment@to}[2][bar@default]{%
+  \FPsub\mydest{#2}\data@value
+  \@set@bar@style{#1}
+  \draw@segment{\mydest}
+}
+\newcommand{\@adv@segment@to}[2][bar@default]{%
+  \FPsub\mydest{#2}\data@value
+  \@set@bar@style{#1}
+  \draw@segment{\mydest}
+  \adv@data@ptr@star
+}
+\newcommand{\@segment@to@datum}[2][bar@default]{%
+  \return@datum@value[#2]\mydatum
+  \FPsub\mydest\mydatum\data@value
+  \@set@bar@style{#1}
+  \draw@segment{\mydest}
+}
+\newcommand{\@adv@segment@to@datum}[2][bar@default]{%
+  \return@datum@value[#2]\mydatum
+  \FPsub\mydest\mydatum\data@value
+  \@set@bar@style{#1}
+  \draw@segment{\mydest}
+  \adv@data@ptr@star
+}
+% tinted version
+\newcommand{\tint@segment}[2][bar@default]{%
+  \@set@bar@style{style=#1,style=bar@tint@over}
+  \draw@segment{#2}
+  \@set@bar@style{style=bar@tint@over}
+  \draw@segment{#2}
+}
+\newcommand{\tint@adv@segment}[2][bar@default]{%
+  \tint@segment[#1]{#2}
+  \adv@data@ptr@star
+}
+\newcommand{\tint@segment@to}[2][bar@default]{%
+  \FPsub\mydest{#2}\data@value
+  \tint@segment[#1]{\mydest}
+}
+\newcommand{\tint@adv@segment@to}[2][bar@default]{%
+  \FPsub\mydest{#2}\data@value
+  \tint@adv@segment[#1]{\mydest}
+}
+
+%% ----------
+%% public commands
+%% \segment -- draw a segment at current location
+%% \skipsegment -- skip an empty space (still defines nodes)
+%% \skipto -- skip to specific data location
+%% \datum  -- mark or recall a point of interest
+%% \def\nextseg{\@ifstar
+%%   \adv@data@ptr@star %
+%%   \adv@data@ptr %
+%% }
+
+\newcommand{\segment}{\@ifstar
+  \@adv@segment %
+  \@segment %
+}
+\newcommand{\segmentto}{\@ifstar
+  \@adv@segment@to %
+  \@segment@to %
+}
+\newcommand{\segmenttodatum}{\@ifstar
+  \@adv@segment@to@datum %
+  \@segment@to@datum %
+}
+\newcommand{\tintsegment}{\@ifstar
+  \tint@adv@segment %
+  \tint@segment %
+}
+\newcommand{\tintsegmentto}{\@ifstar
+  \tint@adv@segment@to %
+  \tint@segment@to %
+}
+\def\skipsegment#1{ % in data units
+  \@set@bar@style@none
+  \draw@segment{#1}
+  \adv@data@ptr
+}
+%% \newcommand{\skipto}[2][none]{% in data units
+%%   \pnode(pBarPtr){pDataPtr}
+%%   \gdef\data@value{0}
+%%   \@set@bar@style{#1}
+%%   \draw@segment{#2}
+%%   \adv@data@ptr
+%% }
+\def\skipto#1{% in data units
+  \pnode(pBarPtr){pDataPtr}
+  \gdef\data@value{0}
+  \@set@bar@style@none
+  \draw@segment{#1}
+  \adv@data@ptr
+}
+\newcommand{\skiptodatum}[1]{%
+  \return@datum@value[#1]\mydatum
+  \skipto{\mydatum}
+}
+
+\def\errorbar(#1)(#2){% 
+  % draws error bar to absolute values around data pointer
+  \edef\@min@point{#1}
+  \edef\@max@point{#2}
+  \segmentto[none]{\@min@point}
+  \psline{-|}(pSegmentStart)(pSegmentEnd)
+  \segmentto[none]{\@max@point}
+  \psline{-|}(pSegmentStart)(pSegmentEnd)
+  \if@segment@broken@
+  \@rput@origin{\draw@bar@break}
+  \endlabel{\disps{\@max@point}}
+  \fi
+}
+\def\errorbarrel(#1)(#2){% 
+  % draws error bar to relative values around data pointer 
+  \edef\@min@point{#1}
+  \edef\@max@point{#2}
+  \segment[none]{\@min@point}
+  \psline{-|}(pSegmentStart)(pSegmentEnd)
+  \segment[none]{\@max@point}
+  \psline{-|}(pSegmentStart)(pSegmentEnd)
+  \if@segment@broken@
+  \@rput@origin{\draw@bar@break}
+  \endlabel{\disps{\@max@point}}
+  \fi
+}
+
+\def\return@datum@value[#1]#2{%
+  \checkBar@Datum(\expandafter\csname datum@#1\endcsname)%\ArraytoFP\mydatum
+  \edef#2{\cachedata}
+}
+\def\return@datum@value@to[#1]{%
+  \checkBar@Datum(\expandafter\csname datum@#1\endcsname)%\ArraytoFP\mydatum
+  \cachedata
+}
+
+\def\datum{%
+  \@ifnextchar[% return datum value
+    \return@datum@value@to%
+    \datum@%
+}
+\def\datumhere#1{% create datum named #1 with current pDataPtr value 
+  \datum@{#1}{\data@value}}
+\def\datum@#1#2{% create datum named #1 with value #2
+  \advance\bar@datum by 1
+  \expandafter\xdef\csname datum@#1\endcsname{\the\bar@datum}
+  \Bar@Datum(\bar@datum)={#2}
+}
+\def\atdatum#1#2{
+  \return@datum@value[#1]\mydatum
+%  \show\mydatum
+  \FPdiv\myloc\mydatum\bar@scale
+  \ifx\bar@break\undefined
+    \FPadd\bar@break\mydatum{1}
+  \else
+    \FPdiv\mybreak\bar@break\bar@scale
+  \fi
+%  %\rput(0,0){\rput(\myloc,0){#2}} %% #DIR -- this is hacky anyway
+  \FPiflt\mydatum\bar@break
+    \rput(\myloc,0){#2} %% #DIR -- this is hacky anyway
+    \else
+    \rput(\mybreak,0){#2} %% #DIR -- this is hacky anyway
+  \fi 
+}
+
+\newcommand{\datumline}[3][0]{% [from bar]{to bar}{datum}
+  \atbar[#1]{\atdatum{#3}{\psline[style=bar@datum](0,0)(0,0|p@bar@#2)}}} %% #DIR -- solution can be to fold up an \rput{} inside atdatum
+
+\newcommand{\datumlabel}[3][0]{% [from bar]{\height}{datum}
+  \return@datum@value[#3]\mydatum
+  \atbar[#1]{\psset{nodesep=2pt}\make@datumtick@at[style=bar@datum]{#2}{\mydatum}}
+}
+
+%%=========================================================================
+%% BAR COMMANDS
+
+%% ----------
+%% Backend functions:
+%% \bar@lf -- linefeed
+%% \bar@cr -- carriage return (reset data pointers)
+%% \bar@@cr@@ -- move to next line without resetting data ptrs
+%%               (h or v variant selected in environ setup)
+\def\new@bar{
+  \pnode(bar@newbar){pBarPtr}
+  \advance\bar@count by 1
+  \pnode(bar@newbar){p@bar@\the\bar@count}
+}
+\def\bar@lf[#1]{%
+%%   %% before linefeeding, draw bar break-- want to only do this once per bar?
+%%   \if@bar@broken@
+%%   \@rput@origin{\draw@bar@break}
+%%   \fi
+  \@rput@origin{\rput(p@bar@\the\bar@count){\pnode(0,-#1){bar@newbar}}}% 
+  \new@bar
+}
+\def\bar@cr{% carriage return-- reset data pointer
+  \pnode(bar@newbar){pDataPtr}
+  \gdef\datasum{0}
+  \gdef\data@value{0}
+  \@segment@broken@false
+}
+\def\bar@@cr@@v{% keep current data pointer
+  \pnode(pDataPtr|bar@newbar){ptmp@ptr} 
+  \pnode(ptmp@ptr){pDataPtr}
+}
+\def\bar@@cr@@h{% 
+  \pnode(bar@newbar|pDataPtr){ptmp@ptr} %% 
+  \pnode(ptmp@ptr){pDataPtr}
+}
+
+\newcommand{\nextbar@}[1][1]{%
+  \bar@lf[#1]%
+  \bar@cr%
+}
+\newcommand{\nextbar@star}[1][1]{%
+  \bar@lf[#1]%
+  \bar@@cr@@%
+}
+\def\resetbar@{%
+  \pnode(0,0){pBarPtr}%
+  \bar@cr%
+}
+\def\resetbar@star{%
+  \pnode(0,0){pBarPtr}%
+  \bar@@cr@@%
+}
+\newcommand{\atbar@}[2][\bar@count]{%
+  \rput(p@bar@#1){
+    \pnode(0,0){pBarPtr}
+  }
+  \skipto{0}
+  \@rput@origin{\rput(pBarPtr){#2}}
+}
+\newcommand{\atbar@star}[2][\bar@count]{%
+  \rput(p@bar@#1){
+    \pnode(0,0){pBarPtr}
+  }
+  \skipto{\data@value}
+  \@rput@origin{\rput(pBarPtr){#2}}
+}
+
+\def\thisbar#1{\xdef#1{\thebar}}
+
+\newcommand{\newbar@}[1][0]{% create a bar at the location of an existing bar
+  % to create a bar at a location relative to the current bar use nextbar
+  \pnode(p@bar@#1){bar@newbar}
+  \new@bar
+  \bar@cr
+}
+\newcommand{\newbar@star}[1][0]{% create a bar at the location of an existing bar
+  % to create a bar at a location relative to the current bar use nextbar
+  \pnode(p@bar@#1){bar@newbar}
+  \new@bar
+}
+
+%% ========================================================================
+%% external commands to create and select bars
+%% (note- bars are basically 'pen positions' so create as needed)
+%%
+%% \newbar -- create a bar at an existing bar [default at origin]
+%% \nextbar -- move to next bar; advance by [optarg] in \psyunit or length 
+%% \resetbar -- current bar back to zero
+%% \atbar -- rput relative to given bar's base
+%% star versions preserve data pointer
+\newcommand{\newbar}{\@ifstar
+  \newbar@star%
+  \newbar@%
+}
+\newcommand{\nextbar}{\@ifstar
+  \nextbar@star%
+  \nextbar@%
+}
+\newcommand{\resetbar}{\@ifstar
+  \resetbar@star
+  \resetbar@
+}
+\newcommand{\atbar}{\@ifstar
+  \atbar@star
+  \atbar@
+}
+
+
+
+%%=========================================================================
+%% ANNOTATION COMMANDS 
+
+%% ----------
+%% Backend functions:
+%% \put@text -- put whatever in a psframebox
+%% \put@text@ -- add *
+\def\put@text{\@ifstar
+  \put@textbox@
+  \put@textbox
+}
+
+ %% #DIR -- these commands are meant to generalize this problem
+\def\put@textbox#1{\psframebox[style=none,framesep=\barframesep]{#1}}
+\def\put@textbox@#1{\psframebox*[style=none,framesep=\barframesep]{#1}}
+
+
+%% %% ----------
+%% %% titleat -- only makes sense in horiz
+%% \def\titleat#1#2{%
+%%   \@rput@origin{
+
+
+%% ----------
+%% labelat[#1](#2){#3} -- \rput[#1]{#3} at location #2 in axis units
+%% \labelat[#1]{#2}{#3} --   ''  ''  ''  at location '' in data units
+%% label is
+\def\labelat{%
+  \@ifnextchar[% if yes, position info to rput
+    \@labelat@
+    \@labelat@@@
+}
+%% == no \rput[]
+\def\@labelat@@@{\@labelat@[c]}
+%% == yes \rput[]
+\def\@labelat@[#1]{
+  \@ifnextchar(% if yes, then graph units-- use as is; else data units.
+  {\put@label@at[#1]}
+  {\put@label@data@at[#1]}
+}
+\def\put@label@at[#1](#2)#3{
+  \@rput@label{\rput[#1](#2,0){#3}}} %% #DIR -- 
+%% \def\put@label@at[#1](#2)#3{
+%%   \rput{\bar@rotangle}(pBarPtr){\rput[#1](#2,0){#3}}} %% #DIR -- 
+\def\put@label@data@at[#1]#2#3{
+  \FPdiv\myloc{#2}\bar@scale
+  \rput{\bar@rotangle}(pBarPtr){\rput[#1](\myloc,0){#3}}} %% #DIR -- 
+%%   \@ifnextchar(% if yes, then graph units-- use as is; else data units.
+%%   {\put@label@at@@}
+%%   {\put@label@data@at@@}
+%% }
+%% \def\put@label@at@@(#1)#2{
+%%   \rput(pBarPtr){\rput(#1,0){#2}}} %% #DIR -- 
+%% \def\put@label@data@at@@#1#2{
+%%   \FPdiv\myloc{#1}\bar@scale
+%%   \rput(pBarPtr){\rput(\myloc,0){#2}}} %% #DIR -- 
+
+
+
+%% ----------
+%% Public commands:
+%% \seglabel -- put whatever at segment center
+%% \barlabel -- put parbox at base of bar
+%% \startlabel -- put word at start of segment
+%% \endlabel -- put word at end of segment
+%% \toplabel -- put word above bar
+%% \bottomlabel -- put word below bar
+%% \labelat[#1](#2){#3} -- \rput[#1]{#3} at location #2 in axis units
+%% \labelat[#1]{#2}{#3} --   ''  ''  ''  at location '' in data units
+\newcommand{\seglabel}{\@ifstar
+  \seg@label@star
+  \seg@label@
+}
+%% \def\seg@label@#1{\put@text(pSegmentCenter){#1}} %% #DIR -- %% \rule[-0.4em]{0pt}{1.6em}
+%% \def\seg@label@star#1{\put@text*(pSegmentCenter){#1}} %% #DIR -- %% \rule[-0.4em]{0pt}{1.6em}
+\def\seg@label@#1{\rput(pSegmentCenter){\put@text{#1}}} %% #DIR -- %% \rule[-0.4em]{0pt}{1.6em}
+\def\seg@label@star#1{\rput(pSegmentCenter){\put@text*{#1}}} %% #DIR -- %% \rule[-0.4em]{0pt}{1.6em}
+
+%% bar labels are placed at 0 irrespective of origin
+\def\barlabel#1{\labelat[r](-\barlabelsep){\parbox{\barmargin}{\scriptsize\raggedleft
+    #1}}} %% #DIR -- 
+\def\barlabel#1{\@rput@label{\rput[r](-\barlabelsep,0){%
+      \parbox{\barmargin}{\scriptsize\raggedleft #1}}}}
+\def\baranglelabel#1#2{%
+  \FPifpos{#1}
+  \def\my@ref{br}
+  \else
+  \def\my@ref{tr}
+  \fi
+  \@rput@label{\rput[\my@ref]{#1}(-\barlabelsep,0){%
+      \parbox{\barmargin}{\scriptsize\raggedleft #2}}}
+}
+
+\def\endlabel#1{% need some way for endlabel to know whether data direction is negative
+  \if@seg@neg@dir@
+  \rput[\bar@start@ref]([angle=\bar@rotangle,nodesep=-\barnodesep]pSegmentEnd){\put@text*{#1}}%
+  \else
+  \rput[\bar@end@ref]([angle=\bar@rotangle,nodesep=\barnodesep]pSegmentEnd){\put@text*{#1}}%
+  \fi
+} %% #DIR -- 
+\def\startlabel#1{\rput[\bar@start@ref]([angle=180,nodesep=\barnodesep]pSegmentStart){\put@text*{#1}}} %% #DIR -- 
+\def\leftlabel#1{\rput[r]([angle=180,nodesep=\barnodesep]\p@bar@left@node){\put@text*{#1}}} %% #DIR -- 
+\newcommand{\toplabel}[2][0pt]{\rput([angle=\bar@rotangle@,nodesep=\barnodesep,offset=#1]pSegmentTop){% %% #DIR -- 
+    \rput[\bar@top@ref](0,0){\put@text{#2}} %% #DIR -- 
+  }
+}
+%% \newcommand{\toplabel}[2][0pt]{\rput([angle=90,nodesep=\barnodesep,offset=#1]pSegmentCenter){% %% #DIR -- 
+%%     \psset{yunit=\barwidth}
+%%     \rput[b](0,0.5){\put@text{#2}} %% #DIR -- 
+%%   }
+%% }
+\newcommand{\bottomlabel}[2][0pt]{\rput([angle=-90,nodesep=\barnodesep,offset=#1]pSegmentCenter){%
+    \psset{yunit=\barwidth}
+    \rput[t](0,-0.5){\put@text*{#2}} %% #DIR -- 
+  }
+}
+%% \def\nodeabove#1[#2]#3{%
+%%   \rput(pSegmentEnd){\psset{yunit=\barwidth}
+%%     \rput(0,0.5){\pnode(0,#1){ptmpnode}
+%%       \psline[style=bar@nodelabel](0,0)(ptmpnode)}}
+%%   \rput[#2](ptmpnode){#3}
+%% }
+%% \def\nodebelow#1[#2]#3{%
+%%   \rput(pSegmentEnd){\psset{yunit=\barwidth}
+%%     \rput(0,-0.5){\pnode(0,-#1){ptmpnode}
+%%       \psline[style=bar@nodelabel](0,0)(ptmpnode)}}
+%%     \rput[#2](ptmpnode){#3}
+%% }
+%% \def\dimenbarabove#1{%
+%%   % #1 - dist from bar
+%%   \rput(pSegmentStart|pSegmentTop){
+%%     \rput(0,#1){\psline[style=thin,linewidth=0.6pt](0,0)(pSegmentEnd|0,0)
+%%       \pnode(0,0){bar@dimen@node}
+%%     }
+%%     \psline[style=thin](0,1.2pt)([angle=90,nodesep=\barnodesep]bar@dimen@node)
+%%     \psline[style=thin](pSegmentEnd|0,1.2pt)(pSegmentEnd|[angle=90,nodesep=\barnodesep]bar@dimen@node)
+%%   }
+%% }
+
+%% ---------- %% NEED HORIZ SUPPORT
+%% [overreach]{distance}
+\newcommand{\dimenbar}[2][\barnodesep]{\dimen@check@sign#2\relax{#1}} % switcheroo
+\def\dimen@drawbar#1{\rput(0,#1){% %% #DIR -- 
+    \pnode(0,0){bar@dimen@node}
+    \psline[style=thin](0,0)(pSegmentEnd|0,0)}}
+\def\dimen@drawleaders#1#2{%
+  \psline[style=bar@dimen](0,#2)(0,-#1)
+  \psline[style=bar@dimen](pSegmentEnd|0,#2)(pSegmentEnd|0,-#1)
+}
+\def\dimen@bar@above#1\relax#2{% distance \ overreach
+  \rput(pSegmentStart|pSegmentTop){\rput(0,\barnodesep){
+      \dimen@drawbar{#1} %% #DIR -- 
+      \rput(0,#1){\dimen@drawleaders{#1}{#2}}
+    } %% #DIR -- 
+  }
+}
+\def\dimen@bar@below#1\relax#2{% distance \ overreach
+  \rput(pSegmentStart|pSegmentBottom){\rput(0,-\barnodesep){
+      \dimen@drawbar{#1} %% #DIR -- 
+      \rput(0,#1){\dimen@drawleaders{#1}{-#2}}
+    } %% #DIR -- 
+  }
+}
+\def\dimen@check@sign{\@ifnextchar-
+  \dimen@bar@below
+  \dimen@bar@above
+}
+
+%% ---------- %% NEED HORIZ SUPPORT
+\def\dimenannote(#1)#2{\dimen@check@lpos#1\relax{#2}}%
+\def\dimen@l@pos#1\relax#2{% #1 is lpos relative position
+  \pcline[style=none](bar@dimen@node)(pSegmentEnd|bar@dimen@node)
+  \psset{boxsep=false,framesep=0.85pt}
+  \lput*(#1){#2}}
+\def\dimen@l@left#1\relax#2{% #1 is length left of bar
+  \rput(bar@dimen@node){\rput(#1,0){%
+      \psline[style=bar@dimen](\barnodesep,0)(bar@dimen@node) %% #DIR -- 
+      \rput[r](0,0){#2}}}} %% #DIR -- 
+\def\dimen@l@right#1\relax#2{% #1 is length right of bar
+  \rput(pSegmentEnd|bar@dimen@node){\rput(#1,0){%
+      \psline[style=bar@dimen](-\barnodesep,0)(pSegmentEnd|bar@dimen@node) %% #DIR -- 
+      \rput[l](0,0){#2}}}} %% #DIR -- 
+\def\dimen@check@lsign{\@ifnextchar-
+  \dimen@l@left
+  \dimen@l@right
+}
+\def\dimen@check@lpos{\@ifnextchar0
+  \dimen@l@pos
+  \dimen@check@lsign
+}
+
+
+%% ----------
+%% leaderline{+-leftright}{+-topbottom}
+\def\ldr@draw@r#1\relax#2{\nput[labelsep=\the\barnodesep]{0}{bar@leader@node}{#2}
+  \pcdiag[style=thin,armA=0,armB=6pt,angleB=180](bar@tmp@node)(bar@leader@node)
+} %% #DIR -- 
+\def\ldr@draw@l#1\relax#2{\nput[labelsep=\the\barnodesep]{180}{bar@leader@node}{#2}
+  \pcdiag[style=thin,armA=0,armB=6pt,angleB=0](bar@tmp@node)(bar@leader@node)
+} %% #DIR -- 
+\def\stem@draw@ii#1\relax{%
+  \pcdiag[style=thin,armA=0,angleB=-90,lineAngle=-54](bar@leader@node)(bar@tmp@node)
+} %% #DIR -- 
+\def\stem@draw@i#1\relax{%
+  \pcdiag[style=thin,armA=0,angleB=90,lineAngle=54](bar@leader@node)(bar@tmp@node)
+} %% #DIR -- 
+\def\stem@draw@b@{\@ifnextchar-
+  \stem@draw@i
+  \stem@draw@ii
+}
+\def\stem@draw@t@{\@ifnextchar-
+  \stem@draw@ii
+  \stem@draw@i
+}
+\def\stem@put@b#1\relax#2#3{\nput[labelsep=\the\barnodesep]{-90}{bar@leader@node}{#3}
+  \stem@draw@b@#2\relax%
+}
+\def\stem@put@t#1\relax#2#3{\nput[labelsep=\the\barnodesep]{90}{bar@leader@node}{#3}
+  \stem@draw@t@#2\relax%
+}
+\def\ldr@put@node@t#1\relax{\pnode(pSegmentTop){bar@tmp@node}}
+\def\ldr@put@node@b#1\relax{\pnode(pSegmentBottom){bar@tmp@node}}
+\def\ldr@put@node@where{\@ifnextchar-
+  \ldr@put@node@b
+  \ldr@put@node@t
+}
+\def\ldr@draw@how{\@ifnextchar-
+  \ldr@draw@l
+  \ldr@draw@r
+}
+\def\barleader#1#2#3{% axial lateral content
+  \ldr@put@node@where#2\relax % places node
+  \pnode([angle=\bar@rotangle,nodesep=#1,offset=#2]bar@tmp@node){bar@leader@node} %% #DIR -- 
+  \ldr@draw@how#1\relax{#3}
+}
+\def\stem@draw@how{\@ifnextchar-
+  \stem@put@b
+  \stem@put@t
+}
+\def\drawstem#1#2#3{% axial lateral content
+  \ldr@put@node@where#2\relax % places node
+  \pnode([angle=\bar@rotangle,nodesep=#1,offset=#2]bar@tmp@node){bar@leader@node}
+  \stem@draw@how#2\relax{#1}{#3} % [b] or [t]
+}
+
+%% ----------
+%% AXIS DRAWING
+
+%% ----------
+%% the ticks
+\def\make@datumtick@at[#1]#2#3{
+  \FPdiv\my@loc{#3}{\bar@scale}
+  \@rput@origin{\rput(\my@loc,0){\psline[#1](0,0)(0,#2)% %% #DIR -- 
+    \rput[bl](0,#2){\textbf{\disps{#3}}}}} %% #DIR -- 
+}
+\def\make@percent@tick@at[#1]#2{
+  \FPdiv\my@loc{#2}{\bar@scale}
+%  \FPtrunc\my@pct\my@pct{0}
+  \@rput@origin{\rput(\my@loc,0){\psline[#1](0,-3pt)(0,3pt)% %% #DIR -- 
+    \rput[\bar@top@ref]{\text@rot@up@angle}(0,5pt){\dispspercent{#2}}}} %% #DIR -- 
+}
+\def\make@tick@at[#1]#2{  
+  \FPdiv\my@loc{#2}{\bar@scale}
+  \@rput@origin{\rput(\my@loc,0){\psline[#1](0,-3pt)(0,3pt)% %% #DIR -- 
+    \rput[\bar@top@ref]{\text@rot@up@angle}(0,5pt){\disps{#2}}}} %% #DIR -- 
+}
+\def\make@r@tick@at[#1]#2{  % happens within atbar- no need to rput@origin
+  \FPdiv\my@loc{#2}{\bar@scale}
+  \rput(\my@loc,0){\psline[#1](0,-3pt)(0,3pt)% %% #DIR -- 
+    \rput[\bar@bot@ref]{\text@rot@up@angle}(0,-5pt){\disps{#2}}} %% #DIR -- 
+}
+\def\make@tick@at@u[#1]#2{
+  \FPdiv\my@loc{#2}{\bar@scale}
+  \@rput@origin{\rput(\my@loc,0){\psline[#1](0,-3pt)(0,3pt)% %% #DIR -- 
+    \rput[t](0,-5pt){\disps{#2}}}} %% #DIR -- 
+}
+\def\make@tick@at@n[#1]#2{
+  \FPdiv\my@loc{#2}{\bar@scale}
+  \@rput@origin{\rput(\my@loc,0){\psline[#1](0,-3pt)(0,3pt)}}% %% #DIR -- 
+%    \rput[t](0,-5pt){\disps{#2}}}} %% #DIR -- 
+}
+\def\make@minor@tick@at[#1]#2{
+  \FPdiv\my@loc{#2}{\bar@scale}
+  \@rput@origin{\rput(\my@loc,0){\psline[#1](0,-2pt)(0,2pt)}} %% #DIR -- 
+}
+
+%% ----------
+%% the gridlines
+\def\make@grid@at[#1]#2#3{
+  \FPdiv\my@loc{#2}{\bar@scale}
+  \@rput@origin{\rput(\my@loc,0){\psline[#1](0,0)(0,-#3)% %% #DIR -- 
+    }}
+}
+
+%% ----------
+%% the parsers
+\def\bar@grab@ticks#1,#2\relax{% grab argument by commas and tick
+  \make@tick@at[style=bar@tick]{#1}
+  \ifx\relax#2\relax% end of the line
+  \else
+  \expandafter\bar@grab@ticks#2\relax
+  \fi
+}
+\def\bar@grab@ticks@u#1,#2\relax{% grab argument by commas and tick
+  \make@tick@at@u[style=bar@tick]{#1}
+  \ifx\relax#2\relax% end of the line
+  \else
+  \expandafter\bar@grab@ticks@u#2\relax
+  \fi
+}
+\def\bar@grab@ticks@n#1,#2\relax{% grab argument by commas and tick
+  \make@tick@at@n[style=bar@tick]{#1}
+  \ifx\relax#2\relax% end of the line
+  \else
+  \expandafter\bar@grab@ticks@u#2\relax
+  \fi
+}
+\def\bar@grab@mticks#1,#2\relax{% grab argument by commas and tick
+  \make@minor@tick@at[style=bar@minor@tick]{#1}
+  \ifx\relax#2\relax% end of the line
+  \else
+  \expandafter\bar@grab@mticks#2\relax
+  \fi
+}
+
+%% ----------
+%% either quick-list or for-loop definition
+\def\quickticks{\@ifstar
+  \quickticks@star
+  \quickticks@nostar
+}
+\def\quickticks@nostar(#1){% quick and easy parse
+  \expandafter\bar@grab@ticks#1,\relax
+}
+\def\quickticksu(#1){% quick and easy parse
+  \expandafter\bar@grab@ticks@u#1,\relax
+}
+\def\quickticks@star(#1){% quick and easy parse
+  \expandafter\bar@grab@ticks@n#1,\relax
+}
+\def\quickmticks(#1){% quick and easy parse
+  \expandafter\bar@grab@mticks#1,\relax
+}
+\newcommand{\maketicks}[4][style=bar@tick]{% [style]{start}{skip}{number}
+  \multido{\r@Tick=#2+#3}{#4}{\make@tick@at[#1]{\r@Tick}}}
+\newcommand{\makerticks}[4][style=bar@tick]{% [style]{start}{skip}{number}
+  \multido{\r@Tick=#2+#3}{#4}{\make@r@tick@at[#1]{\r@Tick}}}
+\newcommand{\makepercentticks}[4][style=bar@tick]{% [style]{start}{skip}{number}
+  \multido{\r@Tick=#2+#3}{#4}{\make@percent@tick@at[#1]{\r@Tick}}}
+\newcommand{\maketicksu}[4][style=bar@tick]{% [style]{start}{skip}{number}
+  \multido{\r@Tick=#2+#3}{#4}{\make@tick@at@u[#1]{\r@Tick}}}
+\newcommand{\makeminorticks}[4][style=bar@minor@tick]{% [style]{start}{skip}{number}
+  \multido{\r@Tick=#2+#3}{#4}{\make@minor@tick@at[#1]{\r@Tick}}}
+\newcommand{\makegrid}[5][style=bar@minor@tick]{% [style]{start}{skip}{number}{length}
+  \multido{\r@Grid=#2+#3}{#4}{\make@grid@at[#1]{\r@Grid}{#5}}}
+\newcommand{\makeminorgrid}[5][style=bar@dimen,strokeopacity=0.5]{% [style]{start}{skip}{number}
+  \multido{\r@Grid=#2+#3}{#4}{\make@grid@at[#1]{\r@Grid}{#5}}}
+
+  
+
+%% ----------
+%% data axis
+\def\makeaxis{\@ifnextchar({\make@custom@axis}{\make@axis}}
+\def\make@axis{\psline[arrows=-,style=standard](-\barmargin,0)(1.2,0)}
+\def\make@custom@axis(#1,#2){\@rput@origin{\psline[arrows=-,style=standard](#1,0)(#2,0)}}
+
+%% ----------
+%% baseline
+\def\baseline[#1][#2]{%
+  \psline[arrows=-,style=standard](p@bar@#1)(p@bar@#2)
+}
+
+%%=========================================================================
+%% ENVIRONMENT
+
+%% ----------
+%% \begin{barfig}[form]{width in dimen units}{bar aspect}{scale in data units}(origin)
+%% form is currently h or v (h is still under construction)
+%% origin should be in outer units
+
+\def\bar@origin@opt(#1){%
+  \pnode(#1){Origin}
+  \pnode(#1){pBarPtr}
+  \pnode(#1){pDataPtr}
+  \pnode(#1){p@bar@0}
+  \edef\foo{#1}
+  \show\foo
+}
+\def\setbarorigin{\@ifnextchar({\@set@origin@axis}{\@set@origin@data}}
+\def\@set@origin@axis(#1){
+  \@rput@origin{
+    \pnode(#1){pBarPtr}
+    \pnode(#1){pDataPtr}
+    \pnode(#1){p@bar@0}
+  }
+  \pnode(pBarPtr){Origin}
+}
+\def\@set@origin@data#1{%
+  \FPdiv\myloc{#1}\bar@scale
+  \@set@origin@axis(\myloc,0)
+}
+
+\def\bar@origin@{%
+  \pnode(0,0){Origin}
+  \pnode(0,0){pBarPtr}
+  \pnode(0,0){pLabelPtr}
+  \pnode(0,0){pDataPtr}
+  \pnode(0,0){p@bar@0}
+}
+\def\bar@origin@at@#1{%
+  \rput{\bar@rotangle}(0,0){%
+    \pnode(#1,0){Origin}
+    \pnode(#1,0){pBarPtr}
+    \pnode(#1,0){pDataPtr}
+    \pnode(#1,0){p@bar@0}
+  }
+  \pnode(0,0){pLabelPtr}
+}
+
+\def\barfig@v{%
+  \@horiz@baseline@false
+  \gdef\bar@rotangle{0}
+  \gdef\bar@rotangle@{90}
+  \gdef\bar@end@ref{l}  % ``end'' refpoint as in v-axis
+  \gdef\bar@top@ref{b}  % ``top'' refpoint as in v-axis
+  \gdef\bar@bot@ref{t}  % for rticks
+  \gdef\bar@start@ref{r}  % ``start'' refpoint as in v-axis
+  \gdef\p@bar@left@node{pSegmentStart}
+  \gdef\text@rot@up@angle{0} % replaces *0
+  \global\let\bar@@cr@@\bar@@cr@@v
+  \global\let\@rput@label\@rput@label@v
+}
+\def\barfig@h{%
+  \@horiz@baseline@true
+  \gdef\bar@rotangle{90}
+  \gdef\bar@rotangle@{180}
+  \gdef\bar@end@ref{b}
+  \gdef\bar@top@ref{r}
+  \gdef\bar@bot@ref{l}
+  \gdef\bar@start@ref{t}
+  \gdef\p@bar@left@node{pSegmentTop}
+  \gdef\text@rot@up@angle{-90} % replaces *0
+  \global\let\bar@@cr@@\bar@@cr@@h
+  \global\let\@rput@label\@rput@label@h
+}
+\def\@rput@origin#1{\rput{\bar@rotangle}(Origin){#1}}
+\def\@rput@label@v#1{\rput{\bar@rotangle}(pLabelPtr|pBarPtr){#1}}
+\def\@rput@label@h#1{\rput{\bar@rotangle}(pBarPtr|pLabelPtr){#1}}
+
+\newenvironment{barfig}[4][v]{%
+  \@nameuse{barfig@#1} % Set orientation
+  % set norm axes scale to user specified unit
+  \bar@origin@
+%  \@ifnextchar({\bar@origin@opt}{\bar@origin@}
+%%   \if@horiz@baseline@
+%%   \psset{yunit=#2}
+%%   \psset{xunit=#3\psyunit}
+%%   \else
+  \psset{xunit=#2}
+  \psset{yunit=#3\psxunit}
+%%  \fi
+  \setbarscale[#4]
+  % setup counters
+  \bar@count=0
+  \bar@datum=0
+  % setup vars
+  \gdef\datasum{0} %% sum of positively-drawn bars
+  \gdef\segmentvalue{0}
+  \gdef\data@value{0}
+  \datum@0{0}
+  % do config on #1
+  % set scale and size
+}{}
+
+\newenvironment{barfigOff}[5][v]{%
+  \@nameuse{barfig@#1} % Set orientation
+  % set norm axes scale to user specified unit
+  \psset{xunit=#2}
+  \psset{yunit=#3\psxunit}
+  \FPdiv\my@offset{#5}{#4}
+  \bar@origin@at@{\my@offset}
+  \setbarscale[#4]
+  % setup counters
+  \bar@count=0
+  \bar@datum=0
+  % setup vars
+  \gdef\datasum{0} %% sum of positively-drawn bars
+  \gdef\segmentvalue{0}
+  \gdef\data@value{0}
+  \datum@0{0}
+  % do config on #1
+  % set scale and size
+}{}
+
+\def\thebarscale{\bar@scale}
+
+%% set barwidth
+\def\setbarwidth[#1]{\barwidth=#1} % could also just \setlength..
+\def\setbarscale[#1]{%
+  \@bar@break@false
+  \gdef\bar@scale{#1}} %setbarscale resets breakpoint
+\def\setbarbreakpoint[#1]{%
+  \@bar@break@true
+  \gdef\bar@break{#1}
+  \gdef\bar@break@amount{0}
+}
+
+%% suppress break lines
+\def\suppressbarbreak{\@suppress@bar@break@true}
+\def\unsuppressbarbreak{\@suppress@bar@break@false}
+
+
